@@ -1,0 +1,1142 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>AI BOX 첫 실행 경험 — FDE Studio 컨셉 프로토타입</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
+<style>
+:root{
+  --blue:#4370ff; --green:#44cc16; --orange:#ff9900; --red:#ff3b30;
+  --navy:#0b1d58; --void:#020616;
+  --ink:#1a1a1a; --ink2:#333842; --ink3:#5a6170;
+  --paper:#ffffff; --paper2:#f9f9f9; --line:#e4e7ee; --tint:rgba(67,112,255,.08);
+  --font:"Pretendard Variable",Pretendard,-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Noto Sans KR","Noto Sans CJK KR",sans-serif;
+  --ease:cubic-bezier(.22,.8,.22,1);
+  --spring:cubic-bezier(.34,1.45,.55,1);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{width:100%;height:100%;overflow:hidden;font-family:var(--font);-webkit-font-smoothing:antialiased;color:var(--ink);transition:background-color .9s}
+body.dark{background:var(--void)}
+body.light{background:#f4f6fa}
+button{font-family:inherit;border:0;background:none;cursor:pointer;color:inherit}
+button:focus-visible,input:focus-visible{outline:3px solid var(--blue);outline-offset:3px}
+#stage{position:absolute;left:50%;top:50%;width:1920px;height:1080px;overflow:hidden;transform-origin:center}
+.scene{position:absolute;inset:0;opacity:0;visibility:hidden;transition:opacity .9s var(--ease),visibility 0s linear .9s}
+.scene.on{opacity:1;visibility:visible;transition:opacity .9s var(--ease),visibility 0s}
+
+/* ───────── ORB : AI의 얼굴 (전 씬 공통) ───────── */
+.orb{--s:180px;position:relative;width:var(--s);height:var(--s);flex:none}
+.orb .glow{position:absolute;inset:-55%;border-radius:50%;background:radial-gradient(circle,rgba(67,112,255,.5) 0%,rgba(67,112,255,.16) 36%,rgba(67,112,255,0) 66%);animation:breathe 5s ease-in-out infinite}
+.orb .core{position:absolute;inset:0;border-radius:50%;overflow:hidden;background:radial-gradient(circle at 50% 62%,#4370ff 0%,#0b1d58 78%);animation:morph 9s ease-in-out infinite;box-shadow:inset 0 0 calc(var(--s)*.14) rgba(255,255,255,.28)}
+.orb .b{position:absolute;border-radius:50%;filter:blur(calc(var(--s)*.08))}
+.orb .b1{width:85%;height:85%;left:-18%;top:12%;background:radial-gradient(circle,#4370ff 0%,rgba(67,112,255,0) 68%);animation:drift1 7s ease-in-out infinite}
+.orb .b2{width:72%;height:72%;right:-14%;top:-10%;background:radial-gradient(circle,rgba(255,255,255,.75) 0%,rgba(255,255,255,0) 66%);animation:drift2 8.6s ease-in-out infinite}
+.orb .b3{width:60%;height:60%;left:22%;bottom:-16%;background:radial-gradient(circle,rgba(255,255,255,.55) 0%,rgba(67,112,255,.35) 40%,rgba(67,112,255,0) 70%);animation:drift3 6.4s ease-in-out infinite}
+.orb .gloss{position:absolute;inset:0;border-radius:50%;background:radial-gradient(circle at 33% 25%,rgba(255,255,255,.6) 0%,rgba(255,255,255,0) 30%);animation:morph 9s ease-in-out infinite;pointer-events:none}
+.orb .ring{position:absolute;inset:-24%;border-radius:50%;border:1px solid rgba(255,255,255,.22);animation:spin 16s linear infinite}
+.orb .ring::after{content:"";position:absolute;width:6px;height:6px;border-radius:50%;background:#fff;top:-3px;left:calc(50% - 3px);box-shadow:0 0 12px #4370ff}
+.orb.onlight .ring{border-color:rgba(67,112,255,.22)}
+.orb.onlight .ring::after{background:var(--blue);box-shadow:none}
+.orb.onlight .glow{background:radial-gradient(circle,rgba(67,112,255,.28) 0%,rgba(67,112,255,.08) 38%,rgba(67,112,255,0) 66%)}
+.orb.mini .ring,.orb.mini .glow{display:none}
+.orb.fast .core,.orb.fast .gloss{animation-duration:3.2s}.orb.fast .b{animation-duration:2.6s}
+@keyframes morph{0%,100%{border-radius:50%}25%{border-radius:53% 47% 51% 49%/48% 53% 47% 52%}50%{border-radius:48% 52% 46% 54%/53% 47% 53% 47%}75%{border-radius:51% 49% 54% 46%/47% 51% 49% 53%}}
+@keyframes drift1{0%,100%{transform:translate(0,0) scale(1)}50%{transform:translate(34%,-20%) scale(1.18)}}
+@keyframes drift2{0%,100%{transform:translate(0,0) scale(1)}50%{transform:translate(-30%,26%) scale(.86)}}
+@keyframes drift3{0%,100%{transform:translate(0,0) scale(1)}33%{transform:translate(-22%,-26%) scale(1.2)}66%{transform:translate(20%,-10%) scale(.9)}}
+@keyframes breathe{0%,100%{transform:scale(1);opacity:.85}50%{transform:scale(1.12);opacity:1}}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* ───────── S1 : 서막 ───────── */
+#s1{background:radial-gradient(ellipse 70% 60% at 50% 44%,#0b1d58 0%,#06113a 48%,#020616 100%)}
+#scan{position:absolute;inset:0;width:1920px;height:1080px}
+.mark{position:absolute;left:0;top:0;display:flex;align-items:center;gap:10px;opacity:0;transition:opacity .5s;pointer-events:none;will-change:transform}
+.mark i{width:16px;height:16px;border:1.5px solid rgba(255,255,255,.9);border-radius:3px;margin-left:-8px;margin-top:-8px}
+.mark span{font-size:14px;color:#e5e7eb;letter-spacing:.01em;white-space:nowrap;margin-top:-8px}
+.mark.on{opacity:1}
+#s1orb{position:absolute;left:calc(960px - 110px);top:calc(470px - 110px);--s:220px;opacity:0;transform:scale(.2);transition:opacity .9s var(--ease),transform 1.3s var(--spring)}
+#s1orb.show{opacity:1;transform:scale(1)}
+.bloom{position:absolute;left:960px;top:470px;width:220px;height:220px;margin:-110px 0 0 -110px;border-radius:50%;border:1.5px solid rgba(255,255,255,.7);opacity:0;pointer-events:none}
+.bloom.go{animation:bloom 1.6s var(--ease) forwards}
+@keyframes bloom{0%{opacity:.9;transform:scale(.6)}100%{opacity:0;transform:scale(3.2)}}
+.s1-title{position:absolute;left:0;right:0;top:680px;text-align:center}
+.s1-title h1{font-size:76px;font-weight:600;letter-spacing:-.02em;color:#fff;opacity:0;filter:blur(12px);transform:translateY(10px);transition:all 1.2s var(--ease)}
+.s1-title p{margin-top:14px;font-size:26px;font-weight:400;color:#e5e7eb;opacity:0;transform:translateY(8px);transition:all 1.2s var(--ease) .35s}
+.s1-title.show h1,.s1-title.show p{opacity:1;filter:none;transform:none}
+.s1-read{position:absolute;left:0;right:0;bottom:92px;text-align:center;font-size:16px;color:#e5e7eb;font-variant-numeric:tabular-nums;opacity:0;transition:opacity .5s}
+.s1-read.on{opacity:.9}
+.hint{position:absolute;left:0;right:0;bottom:64px;text-align:center;font-size:17px;color:#e5e7eb;opacity:0;transition:opacity 1s}
+.hint.on{opacity:1;animation:hintp 2.8s ease-in-out infinite}
+@keyframes hintp{0%,100%{opacity:.55}50%{opacity:1}}
+#flash{position:absolute;left:960px;top:470px;width:24px;height:24px;margin:-12px 0 0 -12px;border-radius:50%;background:#fff;transform:scale(0);pointer-events:none;z-index:5}
+#flash.go{transform:scale(180);transition:transform 1s cubic-bezier(.7,0,.25,1)}
+
+/* ───────── S2 : 인사 ───────── */
+#s2{background:#fff;cursor:pointer}
+.greet{position:absolute;left:0;right:0;top:390px;text-align:center;font-size:168px;font-weight:300;letter-spacing:-.035em;line-height:1.1;color:var(--ink);white-space:nowrap}
+.greet.sm{font-size:76px;font-weight:600;letter-spacing:-.025em;top:420px}
+.greet span{display:inline-block;opacity:0;filter:blur(16px);transform:translateY(14px);transition:opacity 1s var(--ease),filter 1s var(--ease),transform 1s var(--ease);transition-delay:calc(var(--i)*55ms)}
+.greet.in span{opacity:1;filter:blur(0);transform:none}
+.greet.out span{opacity:0;filter:blur(16px);transform:translateY(-10px);transition-duration:.55s;transition-delay:calc(var(--i)*15ms)}
+.s2-sub{position:absolute;left:0;right:0;top:540px;text-align:center;font-size:26px;color:var(--ink3);opacity:0;transform:translateY(8px);transition:all 1s var(--ease)}
+.s2-sub.on{opacity:1;transform:none}
+.round-next{position:absolute;left:calc(960px - 36px);top:680px;width:72px;height:72px;border-radius:50%;background:var(--blue);display:grid;place-items:center;opacity:0;transform:scale(.6);transition:opacity .6s,transform .8s var(--spring);box-shadow:0 12px 30px rgba(67,112,255,.35)}
+.round-next.on{opacity:1;transform:scale(1)}
+.round-next:hover{transform:scale(1.06)}
+.round-next svg{width:30px;height:30px}
+
+/* ───────── S3 : 설정 ───────── */
+#s3{background:#fff}
+.sp-progress{position:absolute;top:56px;left:calc(960px - 90px);display:flex;gap:8px}
+.sp-progress i{width:54px;height:5px;border-radius:3px;background:var(--line);transition:background .5s}
+.sp-progress i.on{background:var(--blue)}
+.page{position:absolute;left:calc(960px - 400px);top:132px;width:800px;text-align:center;opacity:0;transform:translateX(90px);transition:opacity .6s var(--ease),transform .8s var(--ease);pointer-events:none}
+.page.on{opacity:1;transform:none;pointer-events:auto}
+.page.past{transform:translateX(-90px)}
+.p-ic{width:104px;height:104px;margin:0 auto 26px;border-radius:28px;background:var(--tint);display:grid;place-items:center}
+.p-ic svg{width:54px;height:54px}
+.page h2{font-size:52px;font-weight:700;letter-spacing:-.025em;line-height:1.2}
+.page .lead{margin-top:14px;font-size:22px;color:var(--ink3);line-height:1.5}
+.list{margin:44px auto 0;width:640px;background:var(--paper2);border-radius:18px;text-align:left;overflow:hidden}
+.row{display:flex;align-items:center;gap:18px;padding:0 26px;min-height:76px;font-size:21px;border-top:1px solid var(--line);width:100%;text-align:left}
+.row:first-child{border-top:0}
+.row .grow{flex:1}
+.row small{display:block;font-size:16px;color:var(--ink3);margin-top:3px}
+.row .ck{width:26px;height:26px;opacity:0;transition:opacity .3s}
+.row.sel .ck{opacity:1}
+button.row:hover{background:rgba(67,112,255,.05)}
+.st{display:flex;align-items:center;gap:8px;font-size:17px;color:var(--ink2);white-space:nowrap}
+.dot{width:10px;height:10px;border-radius:50%;background:#c5cad6;flex:none}
+.dot.ok{background:var(--green)}.dot.warn{background:var(--orange)}.dot.err{background:var(--red)}.dot.run{background:var(--blue);animation:pulse 1.2s ease-in-out infinite}
+@keyframes pulse{0%,100%{box-shadow:0 0 0 0 rgba(67,112,255,.45)}50%{box-shadow:0 0 0 6px rgba(67,112,255,0)}}
+.net-row{opacity:0;transform:translateY(8px);transition:all .6s var(--ease)}
+.net-row.on{opacity:1;transform:none}
+.finding{display:flex;align-items:center;justify-content:center;gap:12px;margin-top:22px;font-size:18px;color:var(--ink3);height:26px;transition:opacity .4s}
+.spin{width:20px;height:20px;border-radius:50%;border:2.5px solid var(--line);border-top-color:var(--blue);animation:spin .8s linear infinite}
+.toggle{width:58px;height:34px;border-radius:17px;background:#c5cad6;position:relative;transition:background .3s;flex:none}
+.toggle::after{content:"";position:absolute;left:3px;top:3px;width:28px;height:28px;border-radius:50%;background:#fff;box-shadow:0 2px 6px rgba(0,0,0,.2);transition:transform .35s var(--spring)}
+.toggle.on{background:var(--blue)}.toggle.on::after{transform:translateX(24px)}
+.keybox{margin:46px auto 0;width:640px;position:relative}
+.keybox input{width:100%;height:92px;border-radius:18px;border:2px solid var(--line);background:var(--paper2);text-align:center;font-family:var(--font);font-size:36px;font-weight:600;letter-spacing:.08em;color:var(--ink);font-variant-numeric:tabular-nums;text-transform:uppercase;transition:border-color .3s}
+.keybox input::placeholder{color:#8c93a1;font-weight:500}
+.keybox input:focus{outline:0;border-color:var(--blue);background:#fff}
+.keybar{position:absolute;left:18px;right:18px;bottom:0;height:3px;border-radius:2px;overflow:hidden;opacity:0}
+.keybar::after{content:"";position:absolute;inset:0;background:var(--blue);transform:translateX(-100%)}
+.verifying .keybar{opacity:1}.verifying .keybar::after{animation:load 1.6s var(--ease) forwards}
+@keyframes load{to{transform:none}}
+.keymeta{margin-top:18px;display:flex;justify-content:center;align-items:center;gap:10px;font-size:18px;color:var(--ink3);min-height:30px}
+.linkbtn{font-size:18px;color:var(--ink2);text-decoration:underline;text-underline-offset:4px;text-decoration-color:var(--blue)}
+.okmark{width:30px;height:30px}
+.okmark circle{fill:var(--green)}
+.okmark path{fill:none;stroke:#fff;stroke-width:3;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:20;stroke-dashoffset:20;animation:draw .5s var(--ease) .15s forwards}
+@keyframes draw{to{stroke-dashoffset:0}}
+.lic{margin:28px auto 0;width:640px;background:var(--paper2);border-radius:18px;padding:8px 26px;text-align:left;opacity:0;transform:translateY(12px);transition:all .8s var(--ease)}
+.lic.on{opacity:1;transform:none}
+.lic div{display:flex;justify-content:space-between;padding:15px 0;border-top:1px solid var(--line);font-size:19px}
+.lic div:first-child{border-top:0}
+.lic span{color:var(--ink3)}.lic b{font-weight:600}
+.sp-foot{position:absolute;left:0;right:0;bottom:64px;display:flex;justify-content:space-between;padding:0 120px}
+.btn{height:60px;padding:0 34px;border-radius:30px;font-size:19px;font-weight:700;display:inline-flex;align-items:center;gap:10px;transition:transform .2s,background .2s,opacity .3s}
+.btn.primary{background:var(--blue);color:#fff;box-shadow:0 10px 24px rgba(67,112,255,.28)}
+.btn.primary:hover{transform:translateY(-1px)}
+.btn.primary[disabled]{background:#eceef3;color:#5a6170;box-shadow:none;cursor:default}
+.btn.ghost{color:var(--ink2);background:transparent}
+.btn.ghost:hover{background:var(--paper2)}
+.btn.line{color:var(--ink);background:#fff;border:1.5px solid var(--line)}
+.btn.line:hover{border-color:var(--blue)}
+.btn.sm{height:46px;padding:0 20px;font-size:17px;font-weight:600;border-radius:23px}
+
+/* ───────── S4 : 깨어남 ───────── */
+#s4{background:radial-gradient(ellipse 60% 55% at 50% 48%,#ffffff 0%,#f9f9f9 100%)}
+.s4-head{position:absolute;left:0;right:0;top:86px;text-align:center}
+.s4-head h2{font-size:52px;font-weight:700;letter-spacing:-.025em;transition:opacity .4s}
+.s4-head p{margin-top:12px;font-size:22px;color:var(--ink3);transition:opacity .4s}
+#s4svg{position:absolute;inset:0;width:1920px;height:1080px}
+.orbit{fill:none;stroke:var(--line);stroke-width:1.5;stroke-dasharray:3 7}
+.conn-l{fill:none;stroke:var(--blue);stroke-width:1.8;opacity:.9}
+#s4orb{position:absolute;left:calc(960px - 100px);top:calc(520px - 100px);--s:200px;opacity:0;transform:scale(.5);transition:opacity .8s,transform 1.2s var(--spring)}
+#s4orb.show{opacity:1;transform:none}
+.pnode{position:absolute;transform:translate(-50%,-50%) scale(.96);display:flex;align-items:center;gap:14px;background:#fff;border:1.5px solid var(--line);border-radius:20px;padding:14px 22px 14px 18px;opacity:.35;transition:all .7s var(--ease);white-space:nowrap}
+.pnode .dot{width:12px;height:12px}
+.pnode b{display:block;font-size:22px;font-weight:700;letter-spacing:-.01em}
+.pnode small{display:block;font-size:15px;color:var(--ink3);margin-top:2px}
+.pnode.on{opacity:1;transform:translate(-50%,-50%) scale(1);border-color:rgba(67,112,255,.45);box-shadow:0 14px 34px rgba(11,29,88,.10)}
+.pnode.on .dot{background:var(--blue)}
+.pulse-dot{position:absolute;left:0;top:0;width:8px;height:8px;margin:-4px 0 0 -4px;border-radius:50%;background:var(--blue);offset-rotate:0deg;animation:travel 2.2s linear infinite;opacity:0}
+.pulse-dot.on{opacity:1}
+@keyframes travel{from{offset-distance:0%}to{offset-distance:100%}}
+.agents{position:absolute;left:0;right:0;top:832px;text-align:center}
+.agents p{font-size:18px;color:var(--ink3);opacity:0;transition:opacity .6s}
+.agents p.on{opacity:1}
+.chips{margin-top:14px;display:flex;justify-content:center;gap:12px}
+.chip{display:inline-flex;align-items:center;gap:10px;padding:11px 18px;border-radius:22px;background:#fff;border:1.5px solid var(--line);font-size:17px;font-weight:600;color:var(--ink);opacity:0;transform:translateY(10px);transition:all .6s var(--ease)}
+.chip.on{opacity:1;transform:none}
+#s4btn{position:absolute;left:50%;top:960px;transform:translateX(-50%) translateY(10px);opacity:0;pointer-events:none;transition:opacity .6s,transform .8s var(--spring)}
+#s4btn.on{opacity:1;transform:translateX(-50%);pointer-events:auto}
+
+/* ───────── S5·S6 : 데스크 & FDE Studio ───────── */
+#desk{background:#f4f6fa}
+.wall{position:absolute;inset:0;background:
+  radial-gradient(900px 620px at 18% 22%,rgba(67,112,255,.20),rgba(67,112,255,0) 70%),
+  radial-gradient(1000px 700px at 86% 78%,rgba(11,29,88,.16),rgba(11,29,88,0) 70%),
+  radial-gradient(700px 500px at 70% 18%,rgba(67,112,255,.10),rgba(67,112,255,0) 70%),
+  linear-gradient(180deg,#f9f9f9,#eef1f7)}
+.menubar{position:absolute;left:0;right:0;top:0;height:36px;display:flex;align-items:center;gap:26px;padding:0 24px;font-size:15px;color:var(--ink);background:rgba(255,255,255,.55);backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);z-index:3}
+.menubar b{font-weight:700}
+.menubar .r{margin-left:auto;display:flex;gap:22px;align-items:center;color:var(--ink2)}
+.menubar .r span{display:flex;align-items:center;gap:8px}
+.s5-copy{position:absolute;left:0;right:0;top:380px;text-align:center;transition:opacity .5s,transform .6s var(--ease)}
+.s5-copy h2{font-size:60px;font-weight:700;letter-spacing:-.03em}
+.s5-copy p{margin-top:16px;font-size:24px;color:var(--ink3)}
+.dock{position:absolute;left:50%;bottom:26px;transform:translateX(-50%);display:flex;align-items:flex-end;gap:14px;padding:14px 16px;border-radius:30px;background:rgba(255,255,255,.62);border:1px solid rgba(255,255,255,.9);backdrop-filter:blur(30px);-webkit-backdrop-filter:blur(30px);box-shadow:0 20px 50px rgba(11,29,88,.14);transition:transform .6s var(--ease),opacity .4s;z-index:2}
+.app{position:relative;width:92px;height:92px;border-radius:24px;background:linear-gradient(180deg,#ffffff,#f4f6fa);border:1px solid var(--line);display:grid;place-items:center;transition:transform .25s var(--ease)}
+.app svg{width:46px;height:46px}
+.app:hover{transform:translateY(-6px)}
+.app .tip{position:absolute;bottom:108px;left:50%;transform:translateX(-50%);padding:7px 13px;border-radius:10px;background:rgba(26,26,26,.88);color:#fff;font-size:15px;font-weight:600;white-space:nowrap;opacity:0;pointer-events:none;transition:opacity .2s}
+.app:hover .tip{opacity:1}
+.app.fde{background:linear-gradient(160deg,#0b1d58,#020616);border:0;box-shadow:0 10px 26px rgba(11,29,88,.35)}
+.app.fde .tip{opacity:1}
+.app.fde .orb{--s:56px}
+.app .run{position:absolute;bottom:-10px;left:50%;width:6px;height:6px;margin-left:-3px;border-radius:50%;background:var(--ink);opacity:0;transition:opacity .3s}
+.app.fde.hintme{animation:nudge 2.4s ease-in-out infinite}
+@keyframes nudge{0%,70%,100%{transform:translateY(0)}78%{transform:translateY(-14px)}86%{transform:translateY(0)}92%{transform:translateY(-6px)}}
+.app.fde.bounce{animation:bounce 1s var(--ease)}
+@keyframes bounce{0%,100%{transform:translateY(0)}25%{transform:translateY(-34px)}50%{transform:translateY(0)}72%{transform:translateY(-18px)}}
+.dock .sep{width:1px;height:70px;background:var(--line);margin:0 4px 11px}
+.toast{position:absolute;right:24px;top:52px;width:420px;display:flex;gap:16px;align-items:center;padding:16px 18px;border-radius:20px;background:rgba(255,255,255,.8);border:1px solid rgba(255,255,255,.95);backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);box-shadow:0 14px 40px rgba(11,29,88,.12);opacity:0;transform:translateX(30px);transition:all .7s var(--ease);z-index:3}
+.toast.on{opacity:1;transform:none}
+.toast b{display:block;font-size:17px}.toast span{display:block;font-size:15px;color:var(--ink3);margin-top:3px}
+.toast .ti{width:46px;height:46px;border-radius:13px;background:linear-gradient(160deg,#0b1d58,#020616);display:grid;place-items:center;flex:none}
+#desk.launched .s5-copy{opacity:0;transform:scale(.96)}
+#desk.launched .dock{transform:translateX(-50%) translateY(150px);opacity:0}
+#desk.launched .toast{opacity:0}
+#desk.launched .app.fde .run{opacity:1}
+
+.win{position:absolute;left:24px;top:48px;width:1872px;height:1008px;background:#fff;border-radius:18px;box-shadow:0 40px 90px rgba(11,29,88,.20),0 0 0 1px rgba(11,29,88,.06);overflow:hidden;display:flex;flex-direction:column;opacity:0;transform:scale(.03);transform-origin:var(--ox,50%) var(--oy,100%);transition:transform .8s cubic-bezier(.2,.85,.2,1),opacity .35s;pointer-events:none;z-index:1}
+#desk.launched .win{opacity:1;transform:none;pointer-events:auto}
+.instant,.instant *{transition:none!important}
+.tb{height:58px;flex:none;display:flex;align-items:center;padding:0 22px;border-bottom:1px solid var(--line);background:var(--paper2);position:relative}
+.lights{display:flex;gap:9px}.lights i{width:14px;height:14px;border-radius:50%;background:#d5d9e2}
+.tb-title{margin-left:22px;display:flex;align-items:center;gap:10px;font-size:17px}
+.tabs{position:absolute;left:50%;transform:translateX(-50%);display:flex;padding:4px;border-radius:12px;background:#eceef3}
+.tabs button{height:38px;padding:0 18px;border-radius:9px;font-size:15px;font-weight:600;color:var(--ink2)}
+.tabs button.on{background:#fff;color:var(--ink);box-shadow:0 2px 8px rgba(11,29,88,.1)}
+.tb-title b{font-weight:700}.tb-title span{color:var(--ink3)}
+.tb-r{margin-left:auto;display:flex;align-items:center;gap:16px}
+.pill{display:flex;align-items:center;gap:9px;height:36px;padding:0 14px;border-radius:18px;background:#fff;border:1px solid var(--line);font-size:15px;color:var(--ink2)}
+.avatar{width:36px;height:36px;border-radius:50%;background:var(--navy);color:#fff;font-size:13px;font-weight:700;display:grid;place-items:center;letter-spacing:.02em}
+.body{flex:1;display:grid;grid-template-columns:340px 1fr 400px;min-height:0}
+
+/* 좌측 레일 */
+.rail{background:var(--paper2);border-right:1px solid var(--line);padding:22px 18px;overflow:auto;display:flex;flex-direction:column}
+.proj{background:#fff;border:1px solid var(--line);border-radius:16px;padding:18px 18px 16px}
+.proj b{display:block;font-size:19px;font-weight:700;letter-spacing:-.01em}
+.proj span{display:block;font-size:15px;color:var(--ink3);margin-top:4px}
+.bar{margin-top:14px;height:6px;border-radius:3px;background:var(--line);overflow:hidden}
+.bar i{display:block;height:100%;width:0;background:var(--blue);border-radius:3px;transition:width .8s var(--ease)}
+.proj .pct{display:flex;justify-content:space-between;margin-top:9px;font-size:15px;color:var(--ink2);font-variant-numeric:tabular-nums}
+.ph{font-size:14px;font-weight:600;color:var(--ink3);margin:16px 10px 4px}
+.step{display:grid;grid-template-columns:32px 1fr;gap:12px;align-items:center;width:100%;text-align:left;padding:9px 10px;border-radius:12px;transition:background .25s}
+.step:hover{background:rgba(67,112,255,.05)}
+.step.cur{background:var(--tint)}
+.sic{width:32px;height:32px;border-radius:50%;display:grid;place-items:center;font-size:14px;font-weight:700;color:var(--ink2);border:1.5px solid #c5cad6;background:#fff;font-variant-numeric:tabular-nums;transition:all .35s}
+.step.cur .sic{border:2px solid var(--blue);color:var(--ink);box-shadow:0 0 0 5px rgba(67,112,255,.14)}
+.step.done .sic{background:var(--green);border-color:var(--green)}
+.step.done .sic svg{width:16px;height:16px}
+.step b{display:block;font-size:17px;font-weight:600;color:var(--ink)}
+.step small{display:none;font-size:14px;color:var(--ink3);margin-top:2px;line-height:1.35}
+.step.cur small{display:block}
+.tools{margin-top:auto;padding-top:18px;border-top:1px solid var(--line)}
+.tools .ph{margin-top:0}
+.tool{display:flex;align-items:center;gap:12px;width:100%;padding:9px 10px;border-radius:10px;font-size:16px;color:var(--ink2)}
+.tool:hover{background:rgba(67,112,255,.05)}
+.tool svg{width:20px;height:20px;flex:none}
+
+/* 중앙 */
+.main{display:flex;flex-direction:column;min-width:0;padding:28px 40px 0}
+.mh{display:flex;align-items:flex-end;gap:24px}
+.mh .grow{flex:1;min-width:0}
+.crumb{font-size:15px;color:var(--ink3);font-weight:600}
+.mh h1{margin-top:6px;font-size:38px;font-weight:700;letter-spacing:-.025em;display:flex;align-items:baseline;gap:14px}
+.mh h1 em{font-style:normal;color:var(--ink3);font-weight:600;font-variant-numeric:tabular-nums}
+.mh p{margin-top:8px;font-size:18px;color:var(--ink2)}
+.mh .acts{display:flex;gap:10px;flex:none}
+.canvas{position:relative;flex:1;margin-top:24px;min-height:0}
+.sv{position:absolute;inset:0;opacity:0;transform:translateY(10px);transition:opacity .45s var(--ease),transform .6s var(--ease);pointer-events:none}
+.sv.on{opacity:1;transform:none;pointer-events:auto}
+.ask{margin:16px 0 22px;height:66px;flex:none;display:flex;align-items:center;gap:14px;padding:0 10px 0 16px;border-radius:33px;border:1.5px solid var(--line);background:#fff;box-shadow:0 10px 30px rgba(11,29,88,.07)}
+.ask .orb{--s:36px}
+.ask input{flex:1;border:0;outline:0;font-family:var(--font);font-size:17px;color:var(--ink);background:transparent}
+.ask input::placeholder{color:#737a88}
+.send{width:46px;height:46px;border-radius:50%;background:var(--blue);display:grid;place-items:center}
+.send svg{width:22px;height:22px}
+
+.card{background:#fff;border:1px solid var(--line);border-radius:18px}
+.soft{background:var(--paper2);border-radius:18px}
+.big{font-size:40px;font-weight:700;letter-spacing:-.02em;font-variant-numeric:tabular-nums;line-height:1.1}
+.lbl{font-size:15px;color:var(--ink3)}
+.reveal{opacity:0;transform:translateY(10px);transition:opacity .5s var(--ease),transform .6s var(--ease);transition-delay:calc(var(--d,0)*1ms)}
+.sv.on .reveal{opacity:1;transform:none}
+
+/* step 01 */
+.g2{display:grid;grid-template-columns:1.25fr 1fr;gap:20px;height:100%}
+.fields{padding:10px 28px}
+.fields div{display:flex;justify-content:space-between;align-items:center;padding:17px 0;border-top:1px solid var(--line);font-size:18px}
+.fields div:first-child{border-top:0}
+.fields span{color:var(--ink3)}.fields b{font-weight:600}
+.note{display:flex;gap:14px;align-items:center;padding:16px 20px;border-radius:16px;background:var(--tint);font-size:17px;color:var(--ink);margin-top:16px}
+.note .orb{--s:30px}
+.quotes{padding:24px 26px;display:flex;flex-direction:column}
+.quotes h3,.card h3{font-size:19px;font-weight:700}
+.q{margin-top:14px;padding:16px 18px;border-radius:14px;background:var(--paper2);font-size:18px;line-height:1.45}
+.q small{display:block;margin-top:8px;font-size:14px;color:var(--ink3)}
+
+/* step 02 */
+.checks{padding:6px 28px}
+.chk{display:grid;grid-template-columns:18px 220px 1fr 90px;align-items:center;gap:16px;padding:19px 0;border-top:1px solid var(--line);font-size:18px}
+.chk:first-child{border-top:0}
+.chk b{font-weight:600}.chk span{color:var(--ink3)}.chk em{font-style:normal;text-align:right;color:var(--ink2);font-weight:600}
+
+/* step 03 */
+.conn{display:grid;grid-template-columns:450px 1fr 300px;height:100%;align-items:center}
+.sources{display:flex;flex-direction:column;gap:14px}
+.src{display:grid;grid-template-columns:48px 1fr auto;gap:14px;align-items:center;height:94px;padding:0 20px 0 16px;border-radius:18px;background:#fff;border:1.5px solid var(--line);transition:border-color .4s}
+.src[data-s="ok"],.src[data-s="run"]{border-color:rgba(67,112,255,.35)}
+.src[data-s="warn"]{border-color:rgba(255,153,0,.6)}
+.src .si{width:48px;height:48px;border-radius:14px;background:var(--paper2);display:grid;place-items:center}
+.src .si svg{width:26px;height:26px}
+.src b{display:block;font-size:18px;font-weight:600}
+.src small{display:block;font-size:15px;color:var(--ink3);margin-top:3px}
+.flows{width:100%;height:520px}
+.fl{fill:none;stroke:#c5cad6;stroke-width:1.8;stroke-dasharray:5 9}
+.fl.ok,.fl.run{stroke:var(--blue);animation:dash 1s linear infinite}
+.fl.warn{stroke:var(--orange)}
+@keyframes dash{to{stroke-dashoffset:-14}}
+.hub{display:flex;flex-direction:column;align-items:center;text-align:center}
+.hub .orb{--s:140px}
+.hub .big{margin-top:44px;font-size:48px}
+.hub .lbl{margin-top:6px;font-size:17px}
+.hub .mini-l{margin-top:14px;font-size:15px;color:var(--ink2);padding:7px 14px;border-radius:14px;background:var(--paper2)}
+
+/* step 04 */
+.map{display:grid;grid-template-columns:1fr 300px;gap:20px;height:100%}
+.map .card{position:relative;overflow:hidden}
+.map svg text{font-family:var(--font)}
+.gn{opacity:0;transition:opacity .5s var(--ease)}
+.sv.on .gn{opacity:1}
+.stats{display:grid;grid-template-rows:repeat(4,1fr);gap:14px}
+.stat{padding:18px 22px;display:flex;flex-direction:column;justify-content:center}
+.stat .lbl{display:flex;align-items:center;gap:8px}
+.stat .big{margin-top:6px;font-size:36px}
+
+/* step 05 dark preview */
+.dash{height:100%;border-radius:20px;background:linear-gradient(150deg,#0b1d58 0%,#081544 60%,#050f33 100%);padding:26px 30px;color:#fff;display:grid;grid-template-rows:auto auto 1fr;gap:18px;box-shadow:0 20px 50px rgba(11,29,88,.25)}
+.dh{display:flex;align-items:center;justify-content:space-between}
+.dh b{font-size:22px;font-weight:700}
+.dh span{font-size:15px;color:#e5e7eb;display:flex;gap:10px;align-items:center}
+.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
+.kpi{border-radius:14px;background:rgba(255,255,255,.07);padding:16px 18px}
+.kpi span{font-size:15px;color:#e5e7eb;display:flex;align-items:center;gap:8px}
+.kpi b{display:block;margin-top:6px;font-size:40px;font-weight:700;font-variant-numeric:tabular-nums;letter-spacing:-.02em}
+.kpi b small{font-size:18px;font-weight:600;color:#e5e7eb;margin-left:4px}
+.dgrid{display:grid;grid-template-columns:1.6fr 1fr;gap:14px;min-height:0}
+.dpanel{border-radius:14px;background:rgba(255,255,255,.07);padding:16px 18px;min-height:0}
+.dpanel h4{font-size:16px;font-weight:600;color:#fff}
+.al{display:flex;align-items:center;gap:12px;padding:12px 0;border-top:1px solid rgba(255,255,255,.1);font-size:15px;color:#fff}
+.al:first-of-type{border-top:0;margin-top:6px}
+.al span{margin-left:auto;color:#e5e7eb;font-variant-numeric:tabular-nums}
+
+/* step 06 */
+.agrid{display:grid;grid-template-columns:1fr 1fr;grid-template-rows:1fr 1fr;gap:18px;height:100%}
+.ag{padding:22px 24px;display:flex;flex-direction:column}
+.ag-h{display:flex;align-items:center;gap:14px}
+.ag-h .ai{width:46px;height:46px;border-radius:14px;background:var(--tint);display:grid;place-items:center;flex:none}
+.ag-h .ai svg{width:26px;height:26px}
+.ag-h b{font-size:20px;font-weight:700;flex:1}
+.ag p{margin-top:12px;font-size:17px;color:var(--ink2);line-height:1.5}
+.tags{margin-top:auto;display:flex;flex-wrap:wrap;gap:8px;padding-top:12px}
+.rule{margin-top:14px;padding:11px 14px;border-radius:12px;background:var(--tint);font-size:16px;color:var(--ink)}
+.tag{font-size:15px;padding:7px 12px;border-radius:10px;background:var(--paper2);color:var(--ink2)}
+.ag-f{display:flex;align-items:center;gap:8px;margin-top:12px;font-size:15px;color:var(--ink2)}
+
+/* step 07 */
+.val{display:grid;grid-template-rows:auto 1fr;gap:18px;height:100%}
+.vtop{display:grid;grid-template-columns:repeat(3,1fr);gap:18px}
+.vtop .card{padding:18px 24px}
+.tbl{padding:6px 26px;overflow:hidden}
+.tr{display:grid;grid-template-columns:240px 1fr 1fr 120px;gap:18px;align-items:center;padding:15px 0;border-top:1px solid var(--line);font-size:17px}
+.tr:first-child{border-top:0;font-size:15px;color:var(--ink3);font-weight:600}
+.tr small{display:block;font-size:14px;color:var(--ink3);margin-top:2px}
+
+/* step 08 */
+.gen{display:grid;grid-template-columns:380px 1fr;gap:20px;height:100%}
+.chat{padding:20px;display:flex;flex-direction:column;gap:14px}
+.msg{display:flex;gap:12px;align-items:flex-start}
+.msg .who{width:34px;height:34px;border-radius:50%;flex:none;display:grid;place-items:center;font-size:13px;font-weight:700;background:var(--paper2);color:var(--ink2);border:1px solid var(--line)}
+.msg .orb{--s:34px}
+.msg .bub{padding:13px 16px;border-radius:16px;background:var(--paper2);font-size:16px;line-height:1.5}
+.msg .bub small{display:block;font-size:14px;color:var(--ink3);margin-bottom:4px;font-weight:600}
+.sugg{display:flex;flex-wrap:wrap;gap:8px;margin-left:46px}
+.sugg button{font-size:15px;padding:8px 13px;border-radius:12px;border:1.5px solid var(--line);color:var(--ink2);background:#fff}
+.sugg button:hover{border-color:var(--blue)}
+.preview{display:flex;flex-direction:column;padding:16px}
+.pv-tb{display:flex;align-items:center;gap:12px}
+.seg{display:flex;padding:4px;border-radius:12px;background:var(--paper2)}
+.seg button{height:38px;padding:0 16px;border-radius:9px;font-size:15px;font-weight:600;color:var(--ink3)}
+.seg button.on{background:#fff;color:var(--ink);box-shadow:0 2px 8px rgba(11,29,88,.1)}
+.pv-tb .btn{margin-left:auto}
+.frame{position:relative;flex:1;margin-top:14px;border-radius:14px;overflow:hidden;background:var(--paper2)}
+.wf,.ds{position:absolute;inset:0;padding:18px;display:grid;grid-template-columns:1fr 1fr;grid-template-rows:auto 1fr 1fr;gap:12px;transition:opacity .6s}
+.wf div{border-radius:10px;background:#e4e7ee;opacity:0;transform:scale(.97);transition:all .45s var(--ease)}
+.wf.build div{opacity:1;transform:none}
+.wf .h{grid-column:1/3;height:40px}
+.wf .w{grid-column:1/3}
+.ds{background:linear-gradient(150deg,#0b1d58,#050f33);opacity:0;color:#fff}
+.ds.on{opacity:1}
+.ds .h{grid-column:1/3;display:flex;align-items:center;justify-content:space-between;font-size:17px;font-weight:700;height:40px}
+.ds .h span{font-size:14px;color:#e5e7eb;font-weight:400}
+.pump{border-radius:12px;background:rgba(255,255,255,.07);padding:14px 16px;display:grid;grid-template-columns:1fr 1fr;gap:6px 14px;align-content:start}
+.pump h5{grid-column:1/3;font-size:16px;font-weight:700;display:flex;align-items:center;gap:8px}
+.pump span{font-size:14px;color:#e5e7eb}
+.pump b{font-size:30px;font-weight:700;font-variant-numeric:tabular-nums}
+.pump b small{font-size:15px;color:#e5e7eb;margin-left:3px;font-weight:600}
+.ds .w{grid-column:1/3;border-radius:12px;background:rgba(255,255,255,.07);padding:12px 16px}
+.ds .w span{font-size:14px;color:#e5e7eb}
+.frame .toast2{position:absolute;left:50%;bottom:18px;transform:translate(-50%,20px);padding:12px 18px;border-radius:14px;background:#fff;color:var(--ink);font-size:16px;font-weight:600;display:flex;gap:10px;align-items:center;box-shadow:0 12px 30px rgba(0,0,0,.25);opacity:0;transition:all .5s var(--ease)}
+.frame .toast2.on{opacity:1;transform:translate(-50%,0)}
+
+/* step 09 */
+.done9{display:grid;grid-template-columns:1fr 440px;gap:20px;height:100%}
+.hero9{display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:30px}
+.hero9 .orb{--s:170px}
+.hero9 h2{margin-top:58px;font-size:38px;white-space:nowrap;font-weight:700;letter-spacing:-.025em}
+.hero9 p{margin-top:12px;font-size:19px;color:var(--ink2)}
+.hero9 .btn{margin-top:30px}
+.hand{padding:20px 26px}
+.hi{display:flex;align-items:center;gap:14px;padding:15px 0;border-top:1px solid var(--line);font-size:17px}
+.hi:first-of-type{border-top:0;margin-top:8px}
+.hi span{margin-left:auto;color:var(--ink2);font-weight:600;font-variant-numeric:tabular-nums}
+
+/* 우측 피드 */
+.feed{border-left:1px solid var(--line);display:flex;flex-direction:column;min-height:0}
+.fh{display:flex;align-items:center;justify-content:space-between;padding:24px 24px 14px}
+.fh b{font-size:20px;font-weight:700}
+.live{display:flex;align-items:center;gap:8px;font-size:15px;color:var(--ink2)}
+.flist{flex:1;overflow:auto;padding:4px 24px 24px;display:flex;flex-direction:column;gap:14px;scroll-behavior:smooth}
+.fi{display:grid;grid-template-columns:32px 1fr;gap:12px;animation:fin .6s var(--ease)}
+@keyframes fin{from{opacity:0;transform:translateY(10px)}}
+.fi .orb{--s:32px}
+.fi .me{width:32px;height:32px;border-radius:50%;background:var(--navy);color:#fff;font-size:12px;font-weight:700;display:grid;place-items:center}
+.fi .top{display:flex;justify-content:space-between;align-items:baseline}
+.fi .top b{font-size:15px;font-weight:700}
+.fi .top span{font-size:14px;color:var(--ink3)}
+.fi .tx{margin-top:4px;font-size:16px;line-height:1.5;color:var(--ink2);background:var(--paper2);border-radius:4px 14px 14px 14px;padding:11px 14px}
+.fi.mine .tx{background:var(--tint);color:var(--ink)}
+.fi .fa{display:flex;gap:8px;margin-top:10px}
+.fi .fa button{height:38px;padding:0 14px;border-radius:12px;font-size:15px;font-weight:600;border:1.5px solid var(--line);background:#fff;color:var(--ink)}
+.fi .fa button.pri{border-color:var(--blue)}
+.fi .fa button:hover{background:var(--tint)}
+.typing{display:inline-flex;gap:5px;padding:4px 0}
+.typing i{width:7px;height:7px;border-radius:50%;background:#8c93a1;animation:typ 1s infinite}
+.typing i:nth-child(2){animation-delay:.15s}.typing i:nth-child(3){animation-delay:.3s}
+@keyframes typ{0%,100%{opacity:.3;transform:translateY(0)}50%{opacity:1;transform:translateY(-3px)}}
+.fbar{margin-top:10px;height:5px;border-radius:3px;background:var(--line);overflow:hidden}
+.fbar i{display:block;height:100%;width:0;background:var(--blue);transition:width 2.2s var(--ease)}
+
+/* 데모 컨트롤 (마우스 움직이면 표시) */
+#nav{position:fixed;left:18px;bottom:18px;z-index:50;display:flex;gap:6px;align-items:center;padding:8px;border-radius:16px;background:rgba(26,26,26,.86);backdrop-filter:blur(12px);opacity:0;transform:translateY(8px);transition:opacity .3s,transform .3s;font-family:var(--font)}
+#nav.show{opacity:1;transform:none}
+#nav button{height:36px;padding:0 12px;border-radius:10px;font-size:14px;font-weight:600;color:#e5e7eb}
+#nav button:hover{background:rgba(255,255,255,.12)}
+#nav button.on{background:#fff;color:#1a1a1a}
+#nav .sepv{width:1px;height:22px;background:rgba(255,255,255,.25);margin:0 4px}
+#nav .ap.on{background:var(--blue);color:#fff}
+
+@media (prefers-reduced-motion:reduce){
+  .orb .core,.orb .gloss,.orb .b,.orb .ring,.orb .glow,.fl,.app.fde.hintme{animation:none!important}
+}
+</style>
+</head>
+<body class="dark">
+<div id="stage">
+
+  <!-- ═════════ S1 서막 ═════════ -->
+  <section class="scene" id="s1" aria-label="S1 인트로">
+    <canvas id="scan"></canvas>
+    <div id="marks"></div>
+    <div class="bloom" id="bloom"></div>
+    <div class="orb" id="s1orb"><div class="glow"></div><div class="core"><span class="b b1"></span><span class="b b2"></span><span class="b b3"></span></div><div class="gloss"></div><div class="ring"></div></div>
+    <div class="s1-title" id="s1title"><h1>AI BOX</h1><p>현장을 읽고, AI가 깨어났습니다</p></div>
+    <div class="s1-read" id="s1read">현장을 읽는 중 <span id="s1pct">0</span>%</div>
+    <div class="hint" id="s1hint">클릭해서 시작하기</div>
+    <div id="flash"></div>
+  </section>
+
+  <!-- ═════════ S2 인사 ═════════ -->
+  <section class="scene" id="s2" aria-label="S2 인사">
+    <div class="greet" id="greet"></div>
+    <div class="s2-sub" id="s2sub">현장 구성을 위해 세 가지만 설정할게요</div>
+    <button class="round-next" id="s2next" aria-label="설정 시작"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>
+  </section>
+
+  <!-- ═════════ S3 설정 ═════════ -->
+  <section class="scene" id="s3" aria-label="S3 설정">
+    <div class="sp-progress"><i></i><i></i><i></i></div>
+
+    <div class="page" data-p="0">
+      <div class="p-ic"><svg viewBox="0 0 48 48" fill="none" stroke="#4370ff" stroke-width="2.6"><circle cx="24" cy="24" r="18"/><path d="M6 24h36M24 6c5 5 7.5 11 7.5 18S29 37 24 42c-5-5-7.5-11-7.5-18S19 11 24 6z"/></svg></div>
+      <h2>언어를 선택하세요</h2>
+      <p class="lead">AI BOX와 FDE Studio에 표시할 언어입니다</p>
+      <div class="list" id="langs">
+        <button class="row sel"><span class="grow">한국어</span><svg class="ck" viewBox="0 0 24 24" fill="none" stroke="#4370ff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></button>
+        <button class="row"><span class="grow">English</span><svg class="ck" viewBox="0 0 24 24" fill="none" stroke="#4370ff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></button>
+        <button class="row"><span class="grow">日本語</span><svg class="ck" viewBox="0 0 24 24" fill="none" stroke="#4370ff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></button>
+        <button class="row"><span class="grow">Tiếng Việt</span><svg class="ck" viewBox="0 0 24 24" fill="none" stroke="#4370ff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></button>
+      </div>
+    </div>
+
+    <div class="page" data-p="1">
+      <div class="p-ic"><svg viewBox="0 0 48 48" fill="none" stroke="#4370ff" stroke-width="2.6" stroke-linejoin="round"><rect x="18" y="6" width="12" height="10" rx="2"/><rect x="5" y="32" width="12" height="10" rx="2"/><rect x="31" y="32" width="12" height="10" rx="2"/><path d="M24 16v8M11 32v-8h26v8"/></svg></div>
+      <h2>현장 네트워크에 연결합니다</h2>
+      <p class="lead">AI BOX는 외부 인터넷 없이 현장 내부망 안에서 작동합니다</p>
+      <div class="finding" id="finding"><span class="spin"></span>연결 가능한 네트워크를 찾고 있습니다</div>
+      <div class="list" style="margin-top:18px">
+        <div class="row net-row"><span class="grow">유선 LAN 1<small>현장 내부망, 10.20.1.15</small></span><span class="st"><i class="dot ok"></i>연결됨</span></div>
+        <div class="row net-row"><span class="grow">유선 LAN 2<small>예비 포트</small></span><span class="st"><i class="dot"></i>사용 안 함</span></div>
+        <div class="row net-row"><span class="grow">폐쇄망 모드<small>외부로 나가는 모든 연결을 차단합니다</small></span><span class="toggle" id="airgap"></span></div>
+      </div>
+    </div>
+
+    <div class="page" data-p="2">
+      <div class="p-ic"><svg viewBox="0 0 48 48" fill="none" stroke="#4370ff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="16" cy="24" r="9"/><path d="M25 24h18M37 24v7M31 24v5"/></svg></div>
+      <h2>라이선스 키를 입력하세요</h2>
+      <p class="lead">라이선스에 맞춰 도메인 패키지와 표준 Agent가 구성됩니다</p>
+      <div class="keybox" id="keybox"><input id="key" maxlength="23" placeholder="XXXXX-XXXXX-XXXXX-XXXXX" autocomplete="off" spellcheck="false" aria-label="라이선스 키"><div class="keybar"></div></div>
+      <div class="keymeta" id="keymeta"><button class="linkbtn" id="demokey">데모 키 채우기</button></div>
+      <div class="lic" id="lic">
+        <div><span>에디션</span><b>Enterprise</b></div>
+        <div><span>도메인 패키지</span><b>발전·플랜트</b></div>
+        <div><span>탑재 구성</span><b>플랫폼 5종, 표준 Agent 4종</b></div>
+        <div><span>사용 기간</span><b>2027년 9월 10일까지</b></div>
+      </div>
+    </div>
+
+    <div class="sp-foot">
+      <button class="btn ghost" id="s3back">뒤로</button>
+      <button class="btn primary" id="s3next">계속</button>
+    </div>
+  </section>
+
+  <!-- ═════════ S4 깨어남 ═════════ -->
+  <section class="scene" id="s4" aria-label="S4 준비 완료">
+    <div class="s4-head"><h2 id="s4t">AI BOX를 깨우는 중입니다</h2><p id="s4p">탑재된 플랫폼과 표준 Agent를 불러오고 있습니다</p></div>
+    <svg id="s4svg" viewBox="0 0 1920 1080"><ellipse class="orbit" cx="960" cy="520" rx="440" ry="250"/><g id="s4lines"></g></svg>
+    <div id="s4dots"></div>
+    <div class="orb onlight" id="s4orb"><div class="glow"></div><div class="core"><span class="b b1"></span><span class="b b2"></span><span class="b b3"></span></div><div class="gloss"></div><div class="ring"></div></div>
+    <div id="s4nodes"></div>
+    <div class="agents"><p id="s4ap">표준 Agent 4종이 대기 중입니다</p><div class="chips" id="s4chips"></div></div>
+    <button class="btn primary" id="s4btn">FDE Studio 열기</button>
+  </section>
+
+  <!-- ═════════ S5·S6 데스크 & FDE Studio ═════════ -->
+  <section class="scene" id="desk" aria-label="S5 런처, S6 FDE Studio">
+    <div class="wall"></div>
+    <div class="menubar"><b>AI BOX</b><span>파일</span><span>보기</span><span>창</span><span>도움말</span>
+      <div class="r"><span><i class="dot ok"></i>현장 내부망</span><span>9월 11일 (금) 오전 10:24</span></div></div>
+
+    <div class="toast" id="toast"><div class="ti"><div class="orb mini" style="--s:28px"><div class="core"><span class="b b1"></span><span class="b b2"></span><span class="b b3"></span></div><div class="gloss"></div></div></div><div><b>FDE Studio 설치 완료</b><span>데모 발전소 프로젝트가 준비되었습니다</span></div></div>
+
+    <div class="s5-copy"><h2>현장에 AI를 심을 시간입니다</h2><p>Dock에서 FDE Studio를 열어 구성을 시작하세요</p></div>
+
+    <div class="dock" id="dock">
+      <button class="app fde hintme" id="fdeApp" aria-label="FDE Studio 열기"><span class="tip">FDE Studio</span>
+        <div class="orb mini"><div class="core"><span class="b b1"></span><span class="b b2"></span><span class="b b3"></span></div><div class="gloss"></div></div><i class="run"></i></button>
+      <div class="sep"></div>
+      <div class="app"><span class="tip">TIM+</span><svg viewBox="0 0 48 48" fill="none" stroke="#4370ff" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 12h14l8 12M6 24h22M6 36h14l8-12"/><rect x="30" y="16" width="12" height="16" rx="3"/></svg></div>
+      <div class="app"><span class="tip">RENOBIT</span><svg viewBox="0 0 48 48" fill="none" stroke="#4370ff" stroke-width="2.8" stroke-linejoin="round"><path d="M24 5l17 10v18L24 43 7 33V15z"/><path d="M7 15l17 10 17-10M24 25v18"/></svg></div>
+      <div class="app"><span class="tip">EPnID</span><svg viewBox="0 0 48 48" fill="none" stroke="#4370ff" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 30h10M34 30h10"/><path d="M14 22v16l20-16v16z"/><path d="M24 30V14M18 14h12"/></svg></div>
+      <div class="app"><span class="tip">drawDX</span><svg viewBox="0 0 48 48" fill="none" stroke="#4370ff" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 6H8v6M34 6h6v6M14 42H8v-6M34 42h6v-6"/><path d="M15 17h18M15 24h18M15 31h10"/></svg></div>
+      <div class="app"><span class="tip">BITHUB</span><svg viewBox="0 0 48 48" fill="none" stroke="#4370ff" stroke-width="2.8"><circle cx="24" cy="24" r="7"/><circle cx="8" cy="10" r="4"/><circle cx="40" cy="10" r="4"/><circle cx="8" cy="38" r="4"/><circle cx="40" cy="38" r="4"/><path d="M11 13l8 6M37 13l-8 6M11 35l8-6M37 35l-8-6"/></svg></div>
+    </div>
+
+    <!-- FDE Studio 창 -->
+    <div class="win" id="win">
+      <div class="tb">
+        <div class="lights"><i></i><i></i><i></i></div>
+        <div class="tb-title"><div class="orb mini" style="--s:24px"><div class="core"><span class="b b1"></span><span class="b b2"></span><span class="b b3"></span></div><div class="gloss"></div></div><b>FDE Studio</b></div>
+        <div class="tabs" id="tabs"><button class="on">현장 구성</button><button>Agent 라이브러리</button><button>컴포넌트 라이브러리</button><button>디자인시스템</button></div>
+        <div class="tb-r"><div class="pill"><i class="dot ok"></i>AI BOX 연결됨</div><div class="avatar">FDE</div></div>
+      </div>
+      <div class="body">
+        <aside class="rail">
+          <div class="proj"><b>데모 발전소 현장 구축</b><span>발전·플랜트 패키지, Enterprise</span>
+            <div class="bar"><i id="pbar"></i></div><div class="pct"><span id="ptxt">2 / 9 단계 완료</span><span id="ppct">22%</span></div></div>
+          <nav id="steps"></nav>
+          </aside>
+
+        <main class="main">
+          <div class="mh">
+            <div class="grow"><div class="crumb" id="crumb"></div><h1><em id="snum"></em><span id="stitle"></span></h1><p id="sdesc"></p></div>
+            <div class="acts"><button class="btn line sm" id="aiDo"><span class="orb mini" style="--s:22px"><span class="core"><span class="b b1"></span><span class="b b2"></span><span class="b b3"></span></span></span>AI에게 맡기기</button><button class="btn primary sm" id="doneNext" style="font-size:19px;font-weight:700">완료하고 다음으로</button></div>
+          </div>
+
+          <div class="canvas" id="canvas">
+            <!-- 01 -->
+            <div class="sv" data-v="1"><div class="g2">
+              <div><div class="card fields reveal">
+                <div><span>고객사</span><b>데모 발전소</b></div>
+                <div><span>대상 현장</span><b>제1발전소 급수 계통</b></div>
+                <div><span>도메인 패키지</span><b>발전·플랜트</b></div>
+                <div><span>라이선스</span><b>Enterprise, 2027년 9월 10일까지</b></div>
+                <div><span>담당 FDE</span><b>김OO</b></div>
+                <div><span>목표 일정</span><b>현장 투입 후 2주 안에 운영 이관</b></div>
+              </div>
+              <div class="note reveal" style="--d:200"><div class="orb mini"><div class="core"><span class="b b1"></span><span class="b b2"></span><span class="b b3"></span></div><div class="gloss"></div></div>라이선스와 네트워크 정보로 프로필 초안을 채웠습니다. 현장 담당자와 확인만 하면 됩니다.</div></div>
+              <div class="card quotes reveal" style="--d:120"><h3>현장 요구 청취</h3>
+                <div class="q">급수펌프 이상 징후를 정지 전에 알고 싶어요<small>설비팀장, 착수 회의</small></div>
+                <div class="q">야간 교대 때 조치 기준이 사람마다 달라요<small>운전원, 현장 인터뷰</small></div>
+                <div class="q">도면과 실제 설비가 안 맞는 곳이 꽤 있어요<small>정비 담당, 현장 인터뷰</small></div>
+                <div class="note" style="margin-top:auto"><div class="orb mini"><div class="core"><span class="b b1"></span><span class="b b2"></span><span class="b b3"></span></div><div class="gloss"></div></div>청취 메모 3건을 요약해 Agent 구성과 화면 생성에 반영합니다</div>
+              </div>
+            </div></div>
+
+            <!-- 02 -->
+            <div class="sv" data-v="2"><div class="vtop" style="margin-bottom:18px">
+                <div class="card reveal" style="padding:18px 24px"><span class="lbl"><i class="dot ok" style="display:inline-block;margin-right:8px"></i>정상 항목</span><div class="big">5개</div></div>
+                <div class="card reveal" style="padding:18px 24px;--d:100"><span class="lbl"><i class="dot warn" style="display:inline-block;margin-right:8px"></i>주의 항목</span><div class="big">1개</div></div>
+                <div class="card reveal" style="padding:18px 24px;--d:200"><span class="lbl">외부로 나간 통신</span><div class="big">0건</div></div>
+              </div><div class="card checks reveal" style="--d:250">
+              <div class="chk"><i class="dot ok"></i><b>내부망 연결</b><span>유선 LAN 1, 현장 내부망 10.20.1.15</span><em>정상</em></div>
+              <div class="chk"><i class="dot ok"></i><b>외부 연결 차단</b><span>폐쇄망 모드 켜짐, 외부 통신 0건</span><em>정상</em></div>
+              <div class="chk"><i class="dot ok"></i><b>AI 추론 엔진</b><span>폐쇄망용 스몰 LLM 로드 완료</span><em>정상</em></div>
+              <div class="chk"><i class="dot ok"></i><b>저장 공간</b><span>사용 가능 3.2TB</span><em>정상</em></div>
+              <div class="chk"><i class="dot warn"></i><b>시간 동기화</b><span>현장 시간 서버와 0.8초 차이, 자동 보정 예정</span><em>주의</em></div>
+              <div class="chk"><i class="dot ok"></i><b>접근 권한</b><span>FDE, 운영자, 관리자 역할 적용</span><em>정상</em></div>
+            </div></div>
+
+            <!-- 03 -->
+            <div class="sv" data-v="3"><div class="conn">
+              <div class="sources" id="sources"></div>
+              <svg class="flows" viewBox="0 0 320 520" preserveAspectRatio="none" id="flows"></svg>
+              <div class="hub">
+                <div class="orb onlight"><div class="glow"></div><div class="core"><span class="b b1"></span><span class="b b2"></span><span class="b b3"></span></div><div class="gloss"></div><div class="ring"></div></div>
+                <div class="big" id="tagCount">0</div><div class="lbl">수집 태그</div>
+                <div class="mini-l">TIM+ 수집 파이프라인</div>
+              </div>
+            </div></div>
+
+            <!-- 04 -->
+            <div class="sv" data-v="4"><div class="map">
+              <div class="card"><svg viewBox="0 0 740 600" width="100%" height="100%" id="pid"></svg></div>
+              <div class="stats">
+                <div class="card stat reveal"><span class="lbl">도면 인식 (drawDX)</span><span class="big">146장</span></div>
+                <div class="card stat reveal" style="--d:100"><span class="lbl">태그 매핑 (EPnID)</span><span class="big">92%</span></div>
+                <div class="card stat reveal" style="--d:200"><span class="lbl">설비 관계</span><span class="big">3,418개</span></div>
+                <div class="card stat reveal" style="--d:300"><span class="lbl"><i class="dot warn"></i>확인 필요 태그</span><span class="big">37개</span></div>
+              </div>
+            </div></div>
+
+            <!-- 05 -->
+            <div class="sv" data-v="5"><div class="dash reveal">
+              <div class="dh"><b>발전·플랜트 표준 관제</b><span><i class="dot ok"></i>현장 데이터 수신 중, RENOBIT 표준 화면</span></div>
+              <div class="kpis">
+                <div class="kpi"><span>발전 출력</span><b>498<small>MW</small></b></div>
+                <div class="kpi"><span>설비 가동률</span><b>98.2<small>%</small></b></div>
+                <div class="kpi"><span><i class="dot warn"></i>활성 알람</span><b>3<small>건</small></b></div>
+                <div class="kpi"><span><i class="dot err"></i>예측 위험 설비</span><b>2<small>대</small></b></div>
+              </div>
+              <div class="dgrid">
+                <div class="dpanel"><h4>급수 유량 추이 (24시간)</h4><svg viewBox="0 0 700 260" width="100%" height="88%" id="trend"></svg></div>
+                <div class="dpanel"><h4>알람</h4>
+                  <div class="al"><i class="dot err"></i>BFP-A 진동 예측 위험<span>10:21</span></div>
+                  <div class="al"><i class="dot warn"></i>FCV-101 응답 지연<span>10:14</span></div>
+                  <div class="al"><i class="dot warn"></i>탈기기 압력 변동<span>09:52</span></div>
+                  <div class="al"><i class="dot ok"></i>BFP-B 정상 복귀<span>09:40</span></div>
+                </div>
+              </div>
+            </div></div>
+
+            <!-- 06 -->
+            <div class="sv" data-v="6"><div class="agrid">
+              <div class="card ag reveal"><div class="ag-h"><span class="ai"><svg viewBox="0 0 24 24" fill="none" stroke="#4370ff" stroke-width="2.2" stroke-linecap="round"><path d="M2 12h4l3-7 4 14 3-7h6"/></svg></span><b>실시간 감시·이상 탐지</b><span class="toggle on"></span></div><p>자산 데이터와 운영 로그를 실시간 분석해 미세한 이상 징후를 즉시 포착합니다</p><div class="rule">탐지 조건: 진동 4.5mm/s 초과가 5분 이상 지속</div><div class="tags"><span class="tag">대상 설비 142대</span><span class="tag">알림: 중앙제어실</span></div><div class="ag-f"><i class="dot ok"></i>구성 완료</div></div>
+              <div class="card ag reveal" style="--d:90"><div class="ag-h"><span class="ai"><svg viewBox="0 0 24 24" fill="none" stroke="#4370ff" stroke-width="2.2"><circle cx="6" cy="6" r="3"/><circle cx="18" cy="6" r="3"/><circle cx="12" cy="18" r="3"/><path d="M8 8l3 7M16 8l-3 7M9 6h6"/></svg></span><b>원인 분석·맥락 해석</b><span class="toggle on"></span></div><p>태그 기반 자산 관계망을 근거로 원인 후보와 영향 범위를 좁혀 제시합니다</p><div class="rule">분석 범위: 이상 설비 기준 상하류 2단계</div><div class="tags"><span class="tag">관계망 3,418개</span><span class="tag">과거 이벤트 50건</span></div><div class="ag-f"><i class="dot ok"></i>구성 완료</div></div>
+              <div class="card ag reveal" style="--d:180"><div class="ag-h"><span class="ai"><svg viewBox="0 0 24 24" fill="none" stroke="#4370ff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 17l6-6 4 4 8-8"/><path d="M15 7h6v6"/></svg></span><b>예지보전·리스크 예측</b><span class="toggle on"></span></div><p>설비 성능 저하 경향을 사전에 파악해 비계획 정지를 예방합니다</p><div class="rule">예측 주기: 1시간마다 잔여 수명 갱신</div><div class="tags"><span class="tag">예측 모델 6개</span><span class="tag">정비 이력 3년</span></div><div class="ag-f"><i class="dot run"></i>학습 데이터 확인 중</div></div>
+              <div class="card ag reveal" style="--d:270"><div class="ag-h"><span class="ai"><svg viewBox="0 0 24 24" fill="none" stroke="#4370ff" stroke-width="2.2" stroke-linecap="round"><rect x="5" y="3" width="14" height="18" rx="2"/><path d="M9 8h6M9 12h6M9 16h3"/></svg></span><b>SOP 가이드·조치 지원</b><span class="toggle on"></span></div><p>상황 발생 시 숙련도와 무관하게 표준 대응 절차를 제시합니다</p><div class="rule">제시 방식: 알람 발생 시 절차 단계별 안내</div><div class="tags"><span class="tag">SOP 문서 212건</span><span class="tag">대응 절차 64개</span></div><div class="ag-f"><i class="dot warn"></i>알림 대상 확인 필요</div></div>
+            </div></div>
+
+            <!-- 07 -->
+            <div class="sv" data-v="7"><div class="val">
+              <div class="vtop">
+                <div class="card reveal"><span class="lbl">판단 일치율</span><div class="big">94%</div></div>
+                <div class="card reveal" style="--d:100"><span class="lbl">재생한 과거 이벤트</span><div class="big">48 / 50</div></div>
+                <div class="card reveal" style="--d:200"><span class="lbl">FDE 확인 대기</span><div class="big">2건</div></div>
+              </div>
+              <div class="card tbl reveal" style="--d:250">
+                <div class="tr"><span>과거 이벤트</span><span>AI 판단</span><span>실제 기록</span><span>결과</span></div>
+                <div class="tr"><span>BFP-A 진동 상승<small>2025.11.03</small></span><span>베어링 마모 의심, 점검 권고</span><span>베어링 교체</span><span class="st"><i class="dot ok"></i>일치</span></div>
+                <div class="tr"><span>급수 유량 저하<small>2025.12.18</small></span><span>FCV-101 응답 지연</span><span>포지셔너 교정</span><span class="st"><i class="dot ok"></i>일치</span></div>
+                <div class="tr"><span>드럼 수위 경보<small>2026.01.22</small></span><span>계측 오류 가능성</span><span>레벨 전송기 교체</span><span class="st"><i class="dot ok"></i>일치</span></div>
+                <div class="tr"><span>탈기기 압력 변동<small>2026.02.09</small></span><span>증기 공급 불안정</span><span>원인 기록 없음</span><span class="st"><i class="dot warn"></i>부분 일치</span></div>
+                <div class="tr"><span>BFP-B 온도 상승<small>2026.03.14</small></span><span>윤활유 부족</span><span>확인 중</span><span class="st"><i class="dot run"></i>검토 중</span></div>
+              </div>
+            </div></div>
+
+            <!-- 08 -->
+            <div class="sv" data-v="8"><div class="gen">
+              <div class="card chat">
+                <div class="msg reveal"><span class="who">고객</span><div class="bub"><small>설비팀장</small>급수펌프 두 대 상태를 한 화면에서 비교하고 싶어요. 진동이랑 온도 위주로요.</div></div>
+                <div class="msg reveal" style="--d:500"><div class="orb mini"><div class="core"><span class="b b1"></span><span class="b b2"></span><span class="b b3"></span></div><div class="gloss"></div></div><div class="bub"><small>화면 Agent</small>BFP-A, BFP-B의 진동과 온도 태그로 비교 화면을 만들었어요. 알람 기준선도 넣을까요?</div></div>
+                <div class="sugg reveal" style="--d:900"><button>알람 기준선 추가</button><button>주간 추이로 바꾸기</button><button>현장 태블릿 크기로 보기</button></div>
+              </div>
+              <div class="card preview">
+                <div class="pv-tb"><div class="seg" id="seg"><button data-m="wf">와이어프레임</button><button data-m="ds">디자인 적용</button></div><button class="btn primary sm" id="convert" style="font-size:19px;font-weight:700">RENOBIT 화면으로 변환</button></div>
+                <div class="frame">
+                  <div class="wf" id="wf"><div class="h"></div><div></div><div></div><div class="w"></div></div>
+                  <div class="ds" id="ds">
+                    <div class="h">급수펌프 비교<span>실시간, 1초 갱신</span></div>
+                    <div class="pump"><h5><i class="dot ok"></i>BFP-A</h5><span>진동</span><span>베어링 온도</span><b>2.8<small>mm/s</small></b><b>62<small>℃</small></b></div>
+                    <div class="pump"><h5><i class="dot warn"></i>BFP-B</h5><span>진동</span><span>베어링 온도</span><b>4.6<small>mm/s</small></b><b>71<small>℃</small></b></div>
+                    <div class="w"><span>진동 추이 비교 (6시간)</span><svg viewBox="0 0 700 150" width="100%" height="80%" id="cmp"></svg></div>
+                  </div>
+                  <div class="toast2" id="toast2"><svg class="okmark" viewBox="0 0 30 30" style="width:24px;height:24px"><circle cx="15" cy="15" r="15"/><path d="M9 15.5l4 4 8-8.5"/></svg>RENOBIT 화면으로 변환했습니다</div>
+                </div>
+              </div>
+            </div></div>
+
+            <!-- 09 -->
+            <div class="sv" data-v="9"><div class="done9">
+              <div class="card hero9"><div class="orb onlight" id="orb9"><div class="glow"></div><div class="core"><span class="b b1"></span><span class="b b2"></span><span class="b b3"></span></div><div class="gloss"></div><div class="ring"></div></div>
+                <h2 id="h9">현장 구성이 끝났습니다</h2><p id="p9">검증된 Agent 4종이 운영을 시작할 준비가 되었습니다</p>
+                <button class="btn primary" id="opStart">운영 시작</button></div>
+              <div class="card hand reveal" style="--d:150"><h3>운영 이관 체크리스트</h3>
+                <div class="hi"><i class="dot ok"></i>데이터 소스 연결<span>5 / 5</span></div>
+                <div class="hi"><i class="dot ok"></i>태그 매핑<span>92%</span></div>
+                <div class="hi"><i class="dot ok"></i>표준 화면 가동<span>완료</span></div>
+                <div class="hi"><i class="dot ok"></i>Agent 구성<span>4종</span></div>
+                <div class="hi"><i class="dot ok"></i>현장 검증 일치율<span>94%</span></div>
+                <div class="hi"><i class="dot ok"></i>고객 요청 화면<span>1건 변환</span></div>
+              </div>
+            </div></div>
+          </div>
+
+          <div class="ask"><div class="orb mini"><div class="core"><span class="b b1"></span><span class="b b2"></span><span class="b b3"></span></div><div class="gloss"></div></div>
+            <input id="askIn" placeholder="FDE Studio에 요청하세요. 예: 알람 로그 시간대를 KST로 맞춰줘" aria-label="FDE Studio에 요청">
+            <button class="send" id="askGo" aria-label="보내기"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5M6 11l6-6 6 6"/></svg></button></div>
+        </main>
+
+        <aside class="feed">
+          <div class="fh"><b>Agent 활동</b><span class="live"><i class="dot ok"></i>실시간</span></div>
+          <div class="flist" id="flist"></div>
+        </aside>
+      </div>
+    </div>
+  </section>
+</div>
+
+<div id="nav">
+  <button data-go="s1">S1 인트로</button><button data-go="s2">S2 인사</button><button data-go="s3">S3 설정</button><button data-go="s4">S4 준비 완료</button><button data-go="s5">S5 런처</button><button data-go="s6">S6 FDE Studio</button>
+  <span class="sepv"></span><button class="ap" id="apBtn">자동 재생</button>
+</div>
+
+<script>
+const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
+const stage=$('#stage'); let SCALE=1;
+function fit(){SCALE=Math.min(innerWidth/1920,innerHeight/1080);stage.style.transform=`translate(-50%,-50%) scale(${SCALE})`}
+addEventListener('resize',fit);fit();
+const clamp=(v,a=0,b=1)=>Math.max(a,Math.min(b,v));
+const eio=t=>t<.5?4*t*t*t:1-Math.pow(-2*t+2,3)/2;
+const eIn=t=>t*t*t;
+const ORB=(cls='',style='')=>`<div class="orb ${cls}" style="${style}"><div class="glow"></div><div class="core"><span class="b b1"></span><span class="b b2"></span><span class="b b3"></span></div><div class="gloss"></div><div class="ring"></div></div>`;
+const CHECK='<svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>';
+
+let timers=[];const later=(f,ms)=>{const id=setTimeout(f,ms);timers.push(id);return id};
+const clearTimers=()=>{timers.forEach(clearTimeout);timers=[]};
+let AUTO=false, cur=null;
+const SCN={s1:'s1',s2:'s2',s3:'s3',s4:'s4',s5:'desk',s6:'desk'};
+
+function go(id,opt={}){
+  clearTimers(); stopScan(); clearStepTimers();
+  const el=SCN[id];
+  $$('.scene').forEach(s=>s.classList.toggle('on',s.id===el));
+  document.body.className=(id==='s1')?'dark':'light';
+  cur=id; ENTER[id](opt);
+  $$('#nav [data-go]').forEach(b=>b.classList.toggle('on',b.dataset.go===id));
+}
+function next(){const o=['s1','s2','s3','s4','s5','s6'];const i=o.indexOf(cur);if(cur==='s1')return s1Click();if(cur==='s2')return s2Click();if(cur==='s3')return s3Next();if(cur==='s4')return go('s5');if(cur==='s5')return launch();}
+
+/* ════════ S1 : 스캔 → 수렴 → 오브 ════════ */
+const cv=$('#scan'),cx=cv.getContext('2d');const DPR=Math.min(devicePixelRatio||1,2);
+cv.width=1920*DPR;cv.height=1080*DPR;cx.scale(DPR,DPR);
+let PTS=[],MARKS=[],raf=0,t0=0;
+(function build(){
+  const add=(x,y,z,k=0)=>PTS.push({x,y,z,k,r:Math.random()});
+  for(let x=-1000;x<=1000;x+=46)for(let z=-560;z<=560;z+=46)add(x,0,z,1);
+  const tower=(ox,oz,h,rb,rw)=>{const yw=h*.72,c=yw/Math.sqrt((rb/rw)**2-1);for(let j=0;j<=20;j++){const y=h*j/20,r=rw*Math.sqrt(1+((y-yw)/c)**2);for(let i=0;i<44;i++){const a=i/44*Math.PI*2+y*.006;add(ox+Math.cos(a)*r,y,oz+Math.sin(a)*r)}}};
+  tower(-560,-60,440,160,96);tower(-330,190,360,130,78);
+  const cyl=(ox,oz,h,r,ny,na)=>{for(let j=0;j<=ny;j++){const y=h*j/ny;for(let i=0;i<na;i++){const a=i/na*Math.PI*2;add(ox+Math.cos(a)*r,y,oz+Math.sin(a)*r)}}};
+  cyl(230,-180,600,24,30,14);cyl(640,-280,130,58,6,30);cyl(790,-280,130,58,6,30);
+  const edge=(a,b,st=13)=>{const d=Math.hypot(b[0]-a[0],b[1]-a[1],b[2]-a[2]),n=Math.ceil(d/st);for(let i=0;i<=n;i++){const t=i/n;add(a[0]+(b[0]-a[0])*t,a[1]+(b[1]-a[1])*t,a[2]+(b[2]-a[2])*t)}};
+  const box=(x0,y0,z0,x1,y1,z1,fl=0)=>{const C=[[x0,y0,z0],[x1,y0,z0],[x1,y0,z1],[x0,y0,z1],[x0,y1,z0],[x1,y1,z0],[x1,y1,z1],[x0,y1,z1]];[[0,1],[1,2],[2,3],[3,0],[4,5],[5,6],[6,7],[7,4],[0,4],[1,5],[2,6],[3,7]].forEach(e=>edge(C[e[0]],C[e[1]]));if(fl)for(let y=y0+fl;y<y1;y+=fl){edge([x0,y,z0],[x1,y,z0],18);edge([x0,y,z0],[x0,y,z1],18)}};
+  box(60,0,20,380,320,240,64);box(420,0,-40,860,170,230,56);box(-120,0,260,40,90,380,45);
+  edge([380,110,120],[420,110,120],10);edge([380,70,60],[600,70,-220],12);edge([600,70,-220],[790,70,-220],12);edge([-330,40,190],[60,40,160],14);edge([-560,30,-60],[60,30,60],14);
+  MARKS=[{p:{x:-560,y:440,z:-60},t:'냉각탑 CT-01'},{p:{x:230,y:600,z:-180},t:'연돌 ST-01'},{p:{x:380,y:320,z:240},t:'보일러 BLR-01'},{p:{x:860,y:170,z:230},t:'터빈 발전기 TG-01'},{p:{x:790,y:130,z:-280},t:'저장탱크 TK-02'}];
+  $('#marks').innerHTML=MARKS.map((m,i)=>`<div class="mark" id="mk${i}"><i></i><span>${m.t}</span></div>`).join('');
+})();
+function proj(p,ang){const ca=Math.cos(ang),sa=Math.sin(ang);const wx=p.x-270,x=wx*ca-p.z*sa,z=wx*sa+p.z*ca,y=p.y-260;const pc=Math.cos(.3),ps=Math.sin(.3);const y2=y*pc+z*ps,z2=-y*ps+z*pc+1750;const f=1250/z2;return[960+x*f,470-y2*f,f]}
+const T={grow:400,sweep:1100,sweepLen:2800,conv:4600,convLen:1250,orb:5500,title:6400,hint:7500};
+function frame(now){
+  const t=now-t0; cx.clearRect(0,0,1920,1080);
+  const ang=-.52+t*.00003;
+  const sweep=eio(clamp((t-T.sweep)/T.sweepLen)), conv=clamp((t-T.conv)/T.convLen);
+  const lock=Math.max(0,Math.sin(clamp((t-T.sweep-T.sweepLen)/600)*Math.PI))*.5;
+  const scanY=130+sweep*880, lineA=t<T.sweep+T.sweepLen?1:clamp(1-(t-T.sweep-T.sweepLen)/500);
+  $('#s1read').classList.toggle('on',t>T.sweep&&t<T.conv+200);
+  $('#s1pct').textContent=Math.round(sweep*100);
+  // points
+  cx.fillStyle='#ffffff';
+  const halo=[];
+  for(const p of PTS){
+    let [sx,sy,f]=proj(p,ang); let a=0;
+    if(t>T.sweep){const d=sy-scanY; if(sweep>=1) a=.26+lock; else a=d>0?Math.exp(-(d*d)/60)*.9:.22+.78*Math.exp(d/60); if(d<=0&&d>-36&&sweep<1)halo.push([sx,sy]);}
+    if(p.k)a*=.7;
+    if(conv>0){const c=eIn(clamp(conv*1.5-p.r*.5)); const dx=sx-960,dy=sy-470,rr=Math.hypot(dx,dy)*(1-c),th=Math.atan2(dy,dx)+c*1.6; sx=960+Math.cos(th)*rr; sy=470+Math.sin(th)*rr; a=a*(1-c)+(c<1?Math.sin(c*Math.PI)*.9:0)}
+    if(a<.01)continue;
+    const s=(p.k?1.8:2)*f; cx.globalAlpha=a; cx.fillRect(sx-s/2,sy-s/2,s,s);
+  }
+  cx.globalAlpha=.4;cx.fillStyle='#4370ff';for(const h of halo)cx.fillRect(h[0]-2,h[1]-2,4,4);
+  cx.globalAlpha=1;
+  // scan line
+  if(t>T.grow&&lineA>0){
+    const w=1920*eio(clamp((t-T.grow)/(T.sweep-T.grow)));
+    const gb=cx.createLinearGradient(0,scanY-160,0,scanY);gb.addColorStop(0,'rgba(67,112,255,0)');gb.addColorStop(1,`rgba(67,112,255,${.16*lineA})`);
+    if(sweep>0){cx.fillStyle=gb;cx.fillRect(0,scanY-160,1920,160)}
+    const g=cx.createLinearGradient(960-w/2,0,960+w/2,0);g.addColorStop(0,'rgba(67,112,255,0)');g.addColorStop(.5,`rgba(255,255,255,${lineA})`);g.addColorStop(1,'rgba(67,112,255,0)');
+    cx.fillStyle=g;cx.fillRect(960-w/2,scanY-1,w,2);
+    cx.fillStyle=`rgba(255,255,255,${.9*lineA})`;cx.beginPath();cx.arc(960,scanY,2.5,0,Math.PI*2);cx.fill();
+  }
+  // markers
+  MARKS.forEach((m,i)=>{const [sx,sy]=proj(m.p,ang);const el=$('#mk'+i);el.style.transform=`translate(${sx}px,${sy}px)`;el.classList.toggle('on',t>T.sweep&&sy<scanY-20&&conv<.05)});
+  if(t>T.orb&&!$('#s1orb').classList.contains('show')){$('#s1orb').classList.add('show');$('#bloom').classList.add('go')}
+  if(t>T.title)$('#s1title').classList.add('show');
+  if(t>T.hint)$('#s1hint').classList.add('on');
+  if(t<T.hint+200)raf=requestAnimationFrame(frame);
+}
+function stopScan(){cancelAnimationFrame(raf)}
+function s1Click(){
+  const t=performance.now()-t0;
+  if(t<T.orb){t0=performance.now()-T.orb;stopScan();raf=requestAnimationFrame(frame);return}
+  $('#flash').classList.add('go');
+  setTimeout(()=>{go('s2')},950);
+}
+$('#s1').addEventListener('click',s1Click);
+
+/* ════════ S2 : 인사 ════════ */
+let s2Final=false;
+function greet(text,cls=''){const g=$('#greet');g.className='greet '+cls;g.innerHTML=[...text].map((c,i)=>`<span style="--i:${i}">${c===' '?'&nbsp;':c}</span>`).join('');void g.offsetWidth;g.classList.add('in')}
+function greetOut(){$('#greet').classList.add('out')}
+function s2FinalShow(){if(s2Final)return;s2Final=true;clearTimers();greet('AI BOX에 오신 것을 환영합니다','sm');later(()=>$('#s2sub').classList.add('on'),700);later(()=>$('#s2next').classList.add('on'),1000);if(AUTO)later(()=>go('s3'),3800)}
+function s2Click(){if(!s2Final)return s2FinalShow();go('s3')}
+$('#s2').addEventListener('click',e=>{if(e.target.closest('#s2next'))return;if(!s2Final)s2FinalShow()});
+$('#s2next').addEventListener('click',()=>go('s3'));
+
+/* ════════ S3 : 설정 ════════ */
+let page=0, verified=false, verifying=false;
+function showPage(p){
+  page=p;
+  $$('#s3 .page').forEach(el=>{const n=+el.dataset.p;el.classList.toggle('on',n===p);el.classList.toggle('past',n<p)});
+  $$('.sp-progress i').forEach((el,i)=>el.classList.toggle('on',i<=p));
+  $('#s3back').style.visibility=p===0?'hidden':'visible';
+  if(p===1)runNet();
+  if(p===2){later(()=>{if(!AUTO)$('#key').focus()},700)}
+  syncNext();
+}
+function syncNext(){const b=$('#s3next');b.disabled=false;
+  if(page===1&&!netDone){b.disabled=true;b.textContent='계속'}
+  else if(page===2){if(verified)b.textContent='계속';else if(verifying){b.textContent='확인 중';b.disabled=true}else{b.textContent='인증하기';b.disabled=$('#key').value.length<23}}
+  else b.textContent='계속';}
+let netDone=false;
+function runNet(){
+  if(netDone)return;
+  $('#finding').style.opacity=1;$$('.net-row').forEach(r=>r.classList.remove('on'));$('#airgap').classList.remove('on');
+  later(()=>{$('#finding').style.opacity=0},1500);
+  $$('.net-row').forEach((r,i)=>later(()=>r.classList.add('on'),1500+i*260));
+  later(()=>{$('#airgap').classList.add('on');netDone=true;syncNext()},2500);
+}
+$$('#langs .row').forEach(r=>r.addEventListener('click',()=>{$$('#langs .row').forEach(x=>x.classList.remove('sel'));r.classList.add('sel')}));
+$('#airgap').addEventListener('click',e=>e.currentTarget.classList.toggle('on'));
+const keyIn=$('#key');
+keyIn.addEventListener('input',()=>{const raw=keyIn.value.toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,20);keyIn.value=raw.match(/.{1,5}/g)?.join('-')||'';syncNext()});
+keyIn.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();s3Next()}e.stopPropagation()});
+function demoKey(){const k='WEMB7AIBOXFDE26K9Q4X';let i=0;keyIn.value='';const iv=setInterval(()=>{i++;keyIn.value=(k.slice(0,i).match(/.{1,5}/g)||[]).join('-');syncNext();if(i>=k.length)clearInterval(iv)},42)}
+$('#demokey').addEventListener('click',demoKey);
+function verify(){
+  if(verifying||verified||keyIn.value.length<23)return;
+  verifying=true;syncNext();$('#keybox').classList.add('verifying');
+  $('#keymeta').innerHTML='<span class="spin"></span>라이선스를 확인하고 있습니다';
+  later(()=>{verifying=false;verified=true;$('#keybox').classList.remove('verifying');
+    $('#keymeta').innerHTML='<svg class="okmark" viewBox="0 0 30 30"><circle cx="15" cy="15" r="15"/><path d="M9 15.5l4 4 8-8.5"/></svg><span style="color:#1a1a1a;font-weight:600">라이선스가 인증되었습니다</span>';
+    $('#lic').classList.add('on');syncNext();if(AUTO)later(()=>go('s4'),2600)},1700);
+}
+function s3Next(){
+  if(page<2){if(page===1&&!netDone)return;showPage(page+1);if(AUTO)autoS3();return}
+  if(!verified){if(keyIn.value.length===23)verify();else keyIn.focus();return}
+  go('s4');
+}
+function autoS3(){if(!AUTO)return;if(page===0)later(s3Next,2200);if(page===1)later(s3Next,3800);if(page===2){later(demoKey,700);later(verify,2200)}}
+$('#s3next').addEventListener('click',s3Next);
+$('#s3back').addEventListener('click',()=>{if(page>0)showPage(page-1)});
+
+/* ════════ S4 : 깨어남 ════════ */
+const PLAT=[{n:'BITHUB',r:'데이터와 기능을 잇는 허브',a:-90},{n:'TIM+',r:'현장 데이터 수집',a:-18},{n:'RENOBIT',r:'디지털 트윈 시각화',a:54},{n:'EPnID',r:'도면 디지털화',a:126},{n:'drawDX',r:'종이도면 AI 인식',a:198}];
+const AGENTS=['실시간 감시·이상 탐지','원인 분석·맥락 해석','예지보전·리스크 예측','SOP 가이드·조치 지원'];
+function buildS4(){
+  let nodes='',lines='',dots='';
+  PLAT.forEach((p,i)=>{const r=p.a*Math.PI/180;const x=960+440*Math.cos(r),y=520+250*Math.sin(r);
+    const ox=960+118*Math.cos(r),oy=520+118*Math.sin(r);
+    nodes+=`<div class="pnode" id="pn${i}" style="left:${x}px;top:${y}px"><i class="dot"></i><div><b>${p.n}</b><small>${p.r}</small></div></div>`;
+    const len=Math.hypot(x-ox,y-oy);
+    lines+=`<path class="conn-l" id="pl${i}" d="M${ox} ${oy}L${x} ${y}" stroke-dasharray="${len}" stroke-dashoffset="${len}" style="transition:stroke-dashoffset .7s cubic-bezier(.22,.8,.22,1)"/>`;
+    dots+=`<i class="pulse-dot" id="pd${i}" style="offset-path:path('M${x} ${y}L${ox} ${oy}');animation-delay:${i*.35}s"></i>`;
+  });
+  $('#s4nodes').innerHTML=nodes;$('#s4lines').innerHTML=lines;$('#s4dots').innerHTML=dots;
+  $('#s4chips').innerHTML=AGENTS.map((a,i)=>`<span class="chip" id="ac${i}"><i class="dot"></i>${a}</span>`).join('');
+}
+buildS4();
+
+/* ════════ S5 : 런처 ════════ */
+let launching=false;
+function launch(){
+  if(launching||cur!=='s5')return;launching=true;
+  const app=$('#fdeApp');app.classList.remove('hintme');app.classList.add('bounce');
+  setTimeout(()=>{
+    const ar=app.getBoundingClientRect(),sr=stage.getBoundingClientRect();
+    const cxp=(ar.left+ar.width/2-sr.left)/SCALE, cyp=(ar.top+ar.height/2-sr.top)/SCALE;
+    const w=$('#win');w.style.setProperty('--ox',(cxp-24)+'px');w.style.setProperty('--oy',(cyp-48)+'px');
+    go('s6',{zoom:true});launching=false;
+  },820);
+}
+$('#fdeApp').addEventListener('click',launch);
+
+/* ════════ S6 : FDE Studio ════════ */
+const STEPS=[
+ {ph:'준비',t:'프로젝트 시작',s:'고객사·현장 프로필과 요구 청취',d:'라이선스와 현장 청취 내용으로 프로젝트 프로필을 확정합니다'},
+ {ph:'준비',t:'현장 환경 점검',s:'내부망·보안·추론 엔진 확인',d:'AI BOX가 현장 내부망 안에서 안전하게 작동할 준비가 되었는지 확인합니다'},
+ {ph:'연결 Connect',t:'데이터 연결',s:'설비·센서·시스템을 AI BOX에 연결',d:'고객의 설비·센서·시스템과 AI BOX를 연결합니다'},
+ {ph:'맥락화 Map',t:'현장 맥락화',s:'태그·설비·공간·관계 매핑',d:'태그·설비·공간·관계를 매핑해 AI가 현장을 이해하도록 구성합니다'},
+ {ph:'구성 Configure',t:'표준 솔루션 가동',s:'표준 화면에 현장 데이터 반영',d:'탑재된 표준 솔루션에 현장 데이터를 연결해 바로 가동합니다'},
+ {ph:'구성 Configure',t:'Agent 구성',s:'표준 Agent를 업무와 SOP에 맞춤',d:'표준 Agent를 고객의 업무와 SOP에 맞게 설정합니다'},
+ {ph:'검증 Validate',t:'현장 검증',s:'실제 데이터로 AI 판단 확인',d:'과거 이벤트를 재생해 AI 판단과 실제 조치를 비교합니다'},
+ {ph:'운영 Operate',t:'화면 생성',s:'고객 요청 화면을 대화로 구성',d:'고객이 원하는 화면을 대화로 만들고 RENOBIT 화면으로 변환합니다'},
+ {ph:'운영 Operate',t:'운영 이관',s:'검증된 Agent 운영 시작',d:'검증된 Agent가 현장에서 분석·판단·조치 지원을 시작합니다'},
+];
+const FEED={
+ 1:[{w:'프로필 Agent',x:'라이선스와 네트워크 정보로 프로젝트 프로필 초안을 만들었습니다.'}],
+ 2:[{w:'점검 Agent',x:'환경 점검 6개 항목 중 5개 정상입니다. 시간 동기화는 자동 보정할게요.'}],
+ 3:[{w:'연결 Agent',x:'현장 내부망에서 데이터 소스 5개를 찾았습니다.'},
+    {w:'연결 Agent',x:'DCS 운전 데이터 12,480개 태그를 연결했습니다. Historian 이력을 가져오는 중입니다.',bar:1},
+    {w:'연결 Agent',x:'알람 로그 시간이 UTC로 기록되어 있습니다. KST로 보정할까요?',act:[['보정하기','fixTZ'],['그대로 두기','skip']]}],
+ 4:[{w:'매핑 Agent',x:'도면 146장에서 설비 1,204대와 태그 기호를 인식했습니다.'},
+    {w:'매핑 Agent',x:'도면과 맞지 않는 태그 37개를 확인 목록으로 정리했습니다.',act:[['목록 보기','skip'],['현장 확인 요청','skip']]}],
+ 5:[{w:'구성 Agent',x:'발전·플랜트 표준 화면에 현장 데이터를 연결했습니다. 알람 3건이 들어오고 있어요.'}],
+ 6:[{w:'구성 Agent',x:'SOP 문서 212건에서 대응 절차 64개를 추출해 SOP 가이드 Agent에 연결했습니다.'},
+    {w:'구성 Agent',x:'SOP 가이드 Agent 알림을 중앙제어실 교대조에 보낼까요?',act:[['보내기','agentOk'],['나중에','skip']]}],
+ 7:[{w:'검증 Agent',x:'과거 이벤트 50건 중 48건을 재생했습니다. 판단 일치율은 94%입니다.'},
+    {w:'검증 Agent',x:'부분 일치 1건은 실제 원인 기록이 없습니다. 운전원 확인이 필요합니다.'}],
+ 8:[{w:'화면 Agent',x:'설비팀장 요청으로 급수펌프 비교 화면 초안을 만들었습니다.'}],
+ 9:[{w:'이관 Agent',x:'운영 이관 체크리스트 6개 항목을 모두 확인했습니다.'}],
+};
+let S={cur:3,done:new Set([1,2]),fed:new Set()};
+let stepT=[];const slater=(f,ms)=>{const id=setTimeout(f,ms);stepT.push(id);return id};
+const clearStepTimers=()=>{stepT.forEach(clearTimeout);stepT=[]};
+
+function renderRail(){
+  let h='',last='';
+  STEPS.forEach((s,i)=>{const n=i+1;if(s.ph!==last){h+=`<div class="ph">${s.ph}</div>`;last=s.ph}
+    const cls=[S.done.has(n)?'done':'',S.cur===n?'cur':''].join(' ');
+    h+=`<button class="step ${cls}" data-n="${n}"><span class="sic">${S.done.has(n)?CHECK:n}</span><span><b>${s.t}</b><small>${s.s}</small></span></button>`});
+  $('#steps').innerHTML=h;
+  $$('#steps .step').forEach(b=>b.addEventListener('click',()=>openStep(+b.dataset.n)));
+  const pct=Math.round(S.done.size/9*100);$('#pbar').style.width=pct+'%';$('#ppct').textContent=pct+'%';$('#ptxt').textContent=`${S.done.size} / 9 단계 완료`;
+}
+function openStep(n){
+  clearStepTimers();S.cur=n;const s=STEPS[n-1];
+  $('#crumb').textContent=s.ph;$('#snum').textContent=String(n).padStart(2,'0');$('#stitle').textContent=s.t;$('#sdesc').textContent=s.d;
+  $('#doneNext').textContent=n===9?'프로젝트 완료':'완료하고 다음으로';
+  $$('.sv').forEach(v=>v.classList.remove('on'));
+  const v=$(`.sv[data-v="${n}"]`);void v.offsetWidth;
+  requestAnimationFrame(()=>v.classList.add('on'));
+  (VIEW[n]||(()=>{}))();
+  renderRail();
+  if(!S.fed.has(n)){S.fed.add(n);(FEED[n]||[]).forEach((m,i)=>slater(()=>pushFeed(m),600+i*1900))}
+}
+function completeStep(){
+  S.done.add(S.cur);
+  if(S.cur<9)openStep(S.cur+1);else{renderRail();startOps()}
+}
+$('#doneNext').addEventListener('click',completeStep);
+$('#aiDo').addEventListener('click',()=>{pushFeed({w:'FDE Studio',x:`${STEPS[S.cur-1].t} 단계를 이어서 진행할게요. 확인이 필요한 항목만 알려드립니다.`,bar:1});slater(completeStep,2600)});
+
+/* feed */
+let demoMin=28;function t2(){demoMin=Math.min(demoMin+1,59);return `오전 10:${demoMin}`}
+function pushFeed(m,mine=false){
+  const el=document.createElement('div');el.className='fi'+(mine?' mine':'');
+  const av=mine?'<div class="me">FDE</div>':'<div class="orb mini"><div class="core"><span class="b b1"></span><span class="b b2"></span><span class="b b3"></span></div><div class="gloss"></div></div>';
+  el.innerHTML=`${av}<div><div class="top"><b>${mine?'나':m.w}</b><span>${t2()}</span></div><div class="tx">${mine?m.x:'<span class="typing"><i></i><i></i><i></i></span>'}</div></div>`;
+  $('#flist').appendChild(el);const L=$('#flist');L.scrollTop=L.scrollHeight;
+  if(mine)return;
+  setTimeout(()=>{const tx=el.querySelector('.tx');tx.textContent=m.x;
+    if(m.bar){const b=document.createElement('div');b.className='fbar';b.innerHTML='<i></i>';tx.after(b);setTimeout(()=>b.firstChild.style.width='100%',60)}
+    if(m.act){const a=document.createElement('div');a.className='fa';a.innerHTML=m.act.map((x,i)=>`<button class="${i===0?'pri':''}" data-f="${x[1]}">${x[0]}</button>`).join('');el.lastElementChild.appendChild(a);
+      a.querySelectorAll('button').forEach(b=>b.addEventListener('click',()=>{ACT[b.dataset.f]&&ACT[b.dataset.f](b);a.innerHTML=`<span class="st"><i class="dot ok"></i>${b.textContent} 처리됨</span>`}))}
+    L.scrollTop=L.scrollHeight},750);
+}
+const ACT={
+  fixTZ(){const r=$('#src3');if(r){r.dataset.s='ok';r.querySelector('.st').innerHTML='<i class="dot ok"></i>연결됨';r.querySelector('small').textContent='KST 보정 완료, 최근 3년';const p=$('#fl3');p&&p.setAttribute('class','fl ok')}},
+  agentOk(){const f=$$('.sv[data-v="6"] .ag-f')[3];if(f)f.innerHTML='<i class="dot ok"></i>구성 완료'},
+  skip(){}
+};
+function ask(){const v=$('#askIn').value.trim();if(!v)return;$('#askIn').value='';pushFeed({x:v},true);setTimeout(()=>pushFeed({w:'FDE Studio',x:'요청을 확인했습니다. 현재 단계에 반영하고 결과를 여기서 알려드릴게요.'}),500)}
+$('#askGo').addEventListener('click',ask);
+$('#askIn').addEventListener('keydown',e=>{e.stopPropagation();if(e.key==='Enter')ask()});
+
+/* views */
+const SRC=[
+ {n:'DCS 운전 데이터',m:'OPC UA, 12,480개 태그',s:'ok',st:'연결됨',ic:'<path d="M4 18V8l5 4V8l5 4V8l6 4v6z"/>'},
+ {n:'Historian 이력',m:'5,940개 태그, 최근 5년',s:'run',st:'가져오는 중',ic:'<path d="M3 17l5-5 4 3 8-8"/><path d="M3 21h18"/>'},
+ {n:'정비 이력 (CMMS)',m:'작업지시 8,112건',s:'ok',st:'연결됨',ic:'<path d="M14.5 5.5a4 4 0 00-5.2 5.2L4 16l4 4 5.3-5.3a4 4 0 005.2-5.2l-2.6 2.6-2.6-2.6z"/>'},
+ {n:'알람 로그',m:'시간대 확인 필요',s:'warn',st:'확인 필요',ic:'<path d="M12 4a6 6 0 00-6 6v4l-2 3h16l-2-3v-4a6 6 0 00-6-6zM10 20h4"/>'},
+ {n:'SOP 문서',m:'212건',s:'wait',st:'대기',ic:'<rect x="5" y="3" width="14" height="18" rx="2"/><path d="M9 8h6M9 12h6M9 16h3"/>'},
+];
+function view3(){
+  $('#sources').innerHTML=SRC.map((s,i)=>`<div class="src reveal" id="src${i}" data-s="${s.s}" style="--d:${i*90}"><span class="si"><svg viewBox="0 0 24 24" fill="none" stroke="#333842" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${s.ic}</svg></span><span><b>${s.n}</b><small>${s.m}</small></span><span class="st"><i class="dot ${s.s}"></i>${s.st}</span></div>`).join('');
+  const H=520,step=(H-5*94)/4+94;
+  $('#flows').innerHTML=SRC.map((s,i)=>{const y=47+i*step;return `<path class="fl ${s.s}" id="fl${i}" d="M0 ${y}C160 ${y},160 260,320 260"/>`}).join('');
+  // 대기 → 연결 진행 연출
+  slater(()=>{const r=$('#src1');r.dataset.s='ok';r.querySelector('.st').innerHTML='<i class="dot ok"></i>연결됨';$('#fl1').setAttribute('class','fl ok');count($('#tagCount'),12480,18420,1400)},3200);
+  slater(()=>{const r=$('#src4');r.dataset.s='run';r.querySelector('.st').innerHTML='<i class="dot run"></i>분석 중';$('#fl4').setAttribute('class','fl run')},4600);
+  count($('#tagCount'),0,12480,1600);
+}
+function count(el,a,b,ms){const s=performance.now();(function f(n){const t=clamp((n-s)/ms);el.textContent=Math.round(a+(b-a)*eio(t)).toLocaleString('ko-KR');if(t<1)requestAnimationFrame(f)})(s)}
+function view4(){
+  const N=[
+   {id:'da',x:110,y:240,t:'탈기기',c:'DA-01',eq:1},{id:'pa',x:330,y:165,t:'급수펌프 A',c:'BFP-A',eq:1},{id:'pb',x:330,y:315,t:'급수펌프 B',c:'BFP-B',eq:1},
+   {id:'fcv',x:540,y:240,t:'급수 제어밸브',c:'FCV-101',eq:1},{id:'dr',x:640,y:390,t:'보일러 드럼',c:'DRM-01',eq:1},
+   {id:'vt',x:200,y:470,t:'진동',c:'VT-201'},{id:'tt',x:360,y:510,t:'베어링 온도',c:'TT-305'},{id:'pt',x:520,y:540,t:'압력',c:'PT-110'},{id:'lt',x:670,y:530,t:'드럼 수위',c:'LT-402',warn:1}
+  ];
+  const P=Object.fromEntries(N.map(n=>[n.id,n]));
+  const E=[['da','pa'],['da','pb'],['pa','fcv'],['pb','fcv'],['fcv','dr']];
+  const S2=[['vt','pa'],['tt','pb'],['pt','fcv'],['lt','dr']];
+  let g='<defs><pattern id="gd" width="24" height="24" patternUnits="userSpaceOnUse"><path d="M24 0H0V24" fill="none" stroke="#eef0f4" stroke-width="1"/></pattern></defs><rect width="740" height="600" fill="url(#gd)"/>';
+  g+=`<text x="28" y="44" font-size="17" font-weight="700" fill="#1a1a1a">급수 계통 관계망</text><text x="28" y="68" font-size="14" fill="#5a6170">도면 인식 결과와 수집 태그를 연결한 결과입니다</text>`;
+  E.forEach((e,i)=>{const a=P[e[0]],b=P[e[1]];g+=`<path class="gn" style="transition-delay:${200+i*120}ms" d="M${a.x} ${a.y}C${(a.x+b.x)/2} ${a.y},${(a.x+b.x)/2} ${b.y},${b.x} ${b.y}" fill="none" stroke="#333842" stroke-width="2.2"/>`});
+  S2.forEach((e,i)=>{const a=P[e[0]],b=P[e[1]];g+=`<path class="gn" style="transition-delay:${900+i*120}ms" d="M${a.x} ${a.y}L${b.x} ${b.y}" fill="none" stroke="${a.warn?'#ff9900':'#4370ff'}" stroke-width="1.8" stroke-dasharray="5 6"/>`});
+  N.forEach((n,i)=>{const d=n.eq?100+i*110:1000+i*120;
+    if(n.eq)g+=`<g class="gn" style="transition-delay:${d}ms"><rect x="${n.x-66}" y="${n.y-30}" width="132" height="60" rx="14" fill="#fff" stroke="#333842" stroke-width="1.8"/><text x="${n.x}" y="${n.y-4}" text-anchor="middle" font-size="15" font-weight="700" fill="#1a1a1a">${n.t}</text><text x="${n.x}" y="${n.y+17}" text-anchor="middle" font-size="14" fill="#5a6170">${n.c}</text></g>`;
+    else g+=`<g class="gn" style="transition-delay:${d}ms"><rect x="${n.x-56}" y="${n.y-26}" width="112" height="52" rx="26" fill="${n.warn?'#fff':'#eef2ff'}" stroke="${n.warn?'#ff9900':'#4370ff'}" stroke-width="1.8" ${n.warn?'stroke-dasharray="5 4"':''}/><text x="${n.x}" y="${n.y-3}" text-anchor="middle" font-size="14" font-weight="700" fill="#1a1a1a">${n.c}</text><text x="${n.x}" y="${n.y+15}" text-anchor="middle" font-size="14" fill="#333842">${n.warn?'확인 필요':n.t}</text></g>`});
+  $('#pid').innerHTML=g;
+}
+function view5(){
+  const pts=[];for(let i=0;i<=48;i++){const v=150-Math.sin(i/6)*28-Math.sin(i/2.3)*9-(i>38?(i-38)*4.5:0);pts.push([20+i*13.5,v])}
+  const line=pts.map((p,i)=>(i?'L':'M')+p[0].toFixed(1)+' '+p[1].toFixed(1)).join('');
+  let s=`<defs><linearGradient id="ar" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#4370ff" stop-opacity=".45"/><stop offset="1" stop-color="#4370ff" stop-opacity="0"/></linearGradient></defs>`;
+  [60,120,180].forEach(y=>s+=`<path d="M20 ${y}H668" stroke="rgba(255,255,255,.1)"/>`);
+  s+=`<path d="M20 90H668" stroke="#ff9900" stroke-dasharray="6 6" stroke-width="1.5"/><text x="24" y="80" font-size="14" fill="#e5e7eb">경고 기준</text>`;
+  s+=`<path d="${line}L668 230L20 230Z" fill="url(#ar)"/><path d="${line}" fill="none" stroke="#4370ff" stroke-width="3" stroke-dasharray="1400" stroke-dashoffset="1400"><animate attributeName="stroke-dashoffset" to="0" dur="1.6s" fill="freeze"/></path>`;
+  ['00시','06시','12시','18시','지금'].forEach((t,i)=>s+=`<text x="${20+i*162}" y="254" font-size="14" fill="#e5e7eb" text-anchor="${i===0?'start':i===4?'end':'middle'}">${t}</text>`);
+  $('#trend').innerHTML=s;
+}
+function view8(){
+  const wf=$('#wf'),ds=$('#ds');wf.classList.remove('build');ds.classList.remove('on');wf.style.opacity=1;setSeg('wf');$('#toast2').classList.remove('on');
+  $('#convert').disabled=false;$('#convert').textContent='RENOBIT 화면으로 변환';
+  [...wf.children].forEach((c,i)=>c.style.transitionDelay=(700+i*180)+'ms');
+  slater(()=>wf.classList.add('build'),60);
+  slater(()=>setSeg('ds'),2800);
+  let s='';const A=[],B=[];for(let i=0;i<=40;i++){A.push([10+i*17,105-Math.sin(i/4)*10-i*.3]);B.push([10+i*17,80-Math.sin(i/3)*12-i*1.1])}
+  const pth=a=>a.map((p,i)=>(i?'L':'M')+p[0]+' '+p[1].toFixed(1)).join('');
+  s+=`<path d="${pth(A)}" fill="none" stroke="#ffffff" stroke-width="2.5"/><path d="${pth(B)}" fill="none" stroke="#ff9900" stroke-width="2.5"/><text x="690" y="18" text-anchor="end" font-size="14" fill="#e5e7eb">흰색 BFP-A, 주황 BFP-B</text>`;
+  $('#cmp').innerHTML=s;
+}
+function setSeg(m){$$('#seg button').forEach(b=>b.classList.toggle('on',b.dataset.m===m));$('#ds').classList.toggle('on',m==='ds');$('#wf').style.opacity=m==='ds'?0:1}
+$$('#seg button').forEach(b=>b.addEventListener('click',()=>setSeg(b.dataset.m)));
+$('#convert').addEventListener('click',e=>{const b=e.currentTarget;if(b.disabled)return;b.disabled=true;b.textContent='변환 중';setSeg('ds');
+  setTimeout(()=>{b.textContent='변환 완료';$('#toast2').classList.add('on');pushFeed({w:'화면 Agent',x:'급수펌프 비교 화면을 RENOBIT 화면으로 변환해 표준 관제에 추가했습니다.'})},1500)});
+function view9(){$('#orb9').classList.remove('fast');$('#h9').textContent='현장 구성이 끝났습니다';$('#p9').textContent='검증된 Agent 4종이 운영을 시작할 준비가 되었습니다';$('#opStart').disabled=false;$('#opStart').textContent='운영 시작'}
+function startOps(){const b=$('#opStart');if(b.disabled)return;b.disabled=true;b.textContent='운영 중';$('#orb9').classList.add('fast');
+  $('#h9').textContent='AI BOX가 일하기 시작했습니다';$('#p9').textContent='표준 Agent 4종이 실시간으로 현장을 지원합니다';
+  S.done.add(9);renderRail();pushFeed({w:'이관 Agent',x:'운영을 시작했습니다. 이제 표준 Agent 4종이 중앙제어실과 함께 일합니다.'})}
+$('#opStart').addEventListener('click',startOps);
+const VIEW={3:view3,4:view4,5:view5,8:view8,9:view9};
+$$('#tabs button').forEach((b,i)=>b.addEventListener('click',()=>{if(i===0)return;pushFeed({w:'FDE Studio',x:`${b.textContent}는 컨셉 단계라 다음 버전에서 연결됩니다. 지금은 화면 생성 단계에서 함께 쓰입니다.`})}));
+function paintHeader(n){const s=STEPS[n-1];$('#crumb').textContent=s.ph;$('#snum').textContent=String(n).padStart(2,'0');$('#stitle').textContent=s.t;$('#sdesc').textContent=s.d}
+
+/* ════════ 씬 진입 ════════ */
+const ENTER={
+  s1(){
+    $('#s1orb').classList.remove('show');$('#s1title').classList.remove('show');$('#s1hint').classList.remove('on');$('#bloom').classList.remove('go');
+    const fl=$('#flash');fl.classList.remove('go');
+    t0=performance.now();raf=requestAnimationFrame(frame);
+    if(AUTO)later(s1Click,T.hint+1400);
+  },
+  s2(){
+    s2Final=false;$('#s2sub').classList.remove('on');$('#s2next').classList.remove('on');$('#greet').innerHTML='';
+    later(()=>greet('안녕하세요'),500);later(greetOut,2500);
+    later(()=>greet('Hello'),3100);later(greetOut,5000);
+    later(s2FinalShow,5600);
+  },
+  s3(){verified=false;verifying=false;netDone=false;keyIn.value='';$('#lic').classList.remove('on');$('#keybox').classList.remove('verifying');
+    $('#keymeta').innerHTML='<button class="linkbtn" id="demokey">데모 키 채우기</button>';$('#demokey').addEventListener('click',demoKey);
+    showPage(0);autoS3()},
+  s4(){
+    $('#s4orb').classList.remove('show');$('#s4btn').classList.remove('on');$('#s4ap').classList.remove('on');
+    $('#s4t').textContent='AI BOX를 깨우는 중입니다';$('#s4p').textContent='탑재된 플랫폼과 표준 Agent를 불러오고 있습니다';
+    PLAT.forEach((p,i)=>{$('#pn'+i).classList.remove('on');const l=$('#pl'+i);l.style.strokeDashoffset=l.getAttribute('stroke-dasharray');$('#pd'+i).classList.remove('on')});
+    AGENTS.forEach((a,i)=>$('#ac'+i).classList.remove('on'));
+    later(()=>$('#s4orb').classList.add('show'),250);
+    PLAT.forEach((p,i)=>{later(()=>{$('#pl'+i).style.strokeDashoffset=0},900+i*620);later(()=>{$('#pn'+i).classList.add('on');$('#pd'+i).classList.add('on')},1350+i*620)});
+    const tA=900+PLAT.length*620+300;
+    later(()=>$('#s4ap').classList.add('on'),tA);
+    AGENTS.forEach((a,i)=>later(()=>{const c=$('#ac'+i);c.classList.add('on');c.querySelector('.dot').className='dot ok'},tA+250+i*200));
+    later(()=>{const t=$('#s4t'),p=$('#s4p');t.style.opacity=0;p.style.opacity=0;setTimeout(()=>{t.textContent='AI BOX가 준비되었습니다';p.textContent='이제 FDE Studio에서 현장 구성을 시작할 수 있습니다';t.style.opacity=1;p.style.opacity=1},400)},tA+1200);
+    later(()=>$('#s4btn').classList.add('on'),tA+1700);
+    if(AUTO)later(()=>go('s5'),tA+4000);
+  },
+  s5(){
+    const d=$('#desk');d.classList.add('instant');d.classList.remove('launched');void d.offsetWidth;d.classList.remove('instant');
+    $('#fdeApp').classList.remove('bounce');$('#fdeApp').classList.add('hintme');$('#toast').classList.remove('on');
+    later(()=>$('#toast').classList.add('on'),900);
+    if(AUTO)later(launch,3200);
+  },
+  s6(opt){
+    const d=$('#desk');
+    if(!opt.zoom){d.classList.add('instant');d.classList.add('launched');void d.offsetWidth;d.classList.remove('instant')}
+    else d.classList.add('launched');
+    $('#fdeApp').classList.remove('hintme','bounce');
+    S={cur:3,done:new Set([1,2]),fed:new Set([1,2])};demoMin=28;$('#flist').innerHTML='';
+    pushFeedStatic('프로필 Agent','라이선스와 네트워크 정보로 프로젝트 프로필 초안을 만들었습니다.');
+    pushFeedStatic('점검 Agent','환경 점검 6개 항목 중 5개 정상입니다. 시간 동기화는 자동 보정할게요.');
+    paintHeader(3);renderRail();setTimeout(()=>openStep(3),opt.zoom?650:0);
+    if(AUTO)autoS6();
+  }
+};
+function pushFeedStatic(w,x){const el=document.createElement('div');el.className='fi';el.style.animation='none';el.innerHTML=`<div class="orb mini"><div class="core"><span class="b b1"></span><span class="b b2"></span><span class="b b3"></span></div><div class="gloss"></div></div><div><div class="top"><b>${w}</b><span>오전 10:12</span></div><div class="tx">${x}</div></div>`;$('#flist').appendChild(el)}
+function autoS6(){let k=0;const tick=()=>{if(!AUTO||cur!=='s6')return;if(S.cur<9){completeStep();later(tick,6500)}else later(startOps,2500)};later(tick,8000)}
+
+/* ════════ 입력 & 데모 컨트롤 ════════ */
+addEventListener('keydown',e=>{
+  if(e.target.tagName==='INPUT')return;
+  if(e.key==='ArrowRight'||e.key===' '){e.preventDefault();next()}
+  if(e.key==='ArrowLeft'){const o=['s1','s2','s3','s4','s5','s6'];const i=o.indexOf(cur);if(i>0)go(o[i-1])}
+  if(e.key.toLowerCase()==='p')toggleAuto();
+  if(e.key.toLowerCase()==='r')go(cur);
+});
+$$('#nav [data-go]').forEach(b=>b.addEventListener('click',()=>go(b.dataset.go)));
+function toggleAuto(){AUTO=!AUTO;$('#apBtn').classList.toggle('on',AUTO);$('#apBtn').textContent=AUTO?'자동 재생 중':'자동 재생';if(AUTO)go('s1')}
+$('#apBtn').addEventListener('click',toggleAuto);
+let navT;addEventListener('mousemove',()=>{$('#nav').classList.add('show');clearTimeout(navT);navT=setTimeout(()=>$('#nav').classList.remove('show'),2200)});
+
+const start=(location.hash||'').replace('#','');
+go(SCN[start]?start:'s1');
+</script>
+</body>
+</html>
